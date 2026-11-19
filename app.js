@@ -14,6 +14,8 @@
     phaseBeep: true,     // short tone together with "Work!" / "Rest!"
     voice: 'coach',      // recorded set (coach | coach-uk | warm), 'auto' = system female voice, or a system voiceURI
     tick: true,          // subtle clock tick every second
+    useRoutine: true,    // follow the exercise list (one exercise per round)
+    routineText: (window.Routine && Routine.DEFAULT_TEXT) || '',
     volume: 1,
   };
   const LIMITS = { work: [1, 3600], rest: [0, 3600], rounds: [1, 99], prep: [0, 60], countdown: [0, 10] };
@@ -50,19 +52,28 @@
   // ---------------------------------------------------------------- schedule
   let segs = [];
   let total = 0;
+  let routine = [];   // [{min, position, name}] when the exercise list is on
 
+  const parseRoutine = (s) => (s.useRoutine && window.Routine ? Routine.parse(s.routineText) : []);
+  const roundCount = () => routine.length || S.rounds;
+
+  // Each segment: {type, dur, start, round, ex}. For work, `ex` is the
+  // exercise being done; for rest/prep it is the exercise coming up next.
   function buildSchedule() {
+    routine = parseRoutine(S);
+    const n = roundCount();
     segs = [];
     let t = 0;
-    const add = (type, sec, round) => {
+    const add = (type, sec, round, ex) => {
       if (sec <= 0) return;
-      segs.push({ type, dur: sec * 1000, start: t, round });
+      segs.push({ type, dur: sec * 1000, start: t, round, ex: ex || null });
       t += sec * 1000;
     };
-    add('prep', S.prep, 1);
-    for (let r = 1; r <= S.rounds; r++) {
-      add('work', S.work, r);
-      if (r < S.rounds) add('rest', S.rest, r);   // no rest after the final round
+    add('prep', S.prep, 1, routine[0]);
+    for (let r = 1; r <= n; r++) {
+      const ex = routine[r - 1];
+      add('work', Math.max(1, Math.round(S.work * (ex ? ex.min : 1))), r, ex);
+      if (r < n) add('rest', S.rest, r, routine[r]);   // no rest after the final round
     }
     total = t;
   }
@@ -172,6 +183,7 @@
   }
 
   function cuePhase(idx) {
+    stopVoice(); // a new phase always cuts off whatever is still being said
     const beepFirst = S.phaseBeep;
     const gap = beepFirst ? 0.16 : 0; // let the beep finish before the word
     if (idx >= segs.length) {
@@ -185,16 +197,21 @@
       say('work', 'Work!', gap);
     } else if (seg.type === 'rest') {
       if (beepFirst) beep(660, 0.14);
-      say('rest', 'Rest!', gap);
+      // "Rest! Next: glute bridge, left." – announced during the transition.
+      sayChain([['rest', 'Rest!']].concat(seg.ex ? [['next', 'Next:'], exPart(seg.ex)] : []), gap);
     } else {
-      say('ready', 'Get ready', 0);
+      sayChain([['ready', 'Get ready.']].concat(seg.ex ? [['first', 'First up:'], exPart(seg.ex)] : []), 0);
     }
   }
 
   function cueCount(sec) {
     const m = S.countdownMode;
     if (m === 'beep' || m === 'both') beep(880, 0.1);
-    if (m === 'voice' || m === 'both') say(String(sec), String(sec), m === 'both' ? 0.12 : 0);
+    if (m === 'voice' || m === 'both') {
+      // Don't talk over an exercise announcement that is still playing.
+      if (voiceBusy()) { if (m === 'voice') beep(880, 0.1); return; }
+      say(String(sec), String(sec), m === 'both' ? 0.12 : 0);
+    }
   }
 
   // ---------------------------------------------------------------- audio
@@ -238,19 +255,44 @@
     });
   }
 
+  function loadClip(set, name) {
+    const key = `${set}/${name}`;
+    if (loading[key]) return loading[key];
+    const b = buffers[set] = buffers[set] || {};
+    loading[key] = fetch(`audio/${key}.mp3`)
+      .then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then(decode)
+      .then((buf) => { b[name] = buf; })
+      .catch(() => { delete loading[key]; /* falls back to speechSynthesis */ });
+    return loading[key];
+  }
+
+  // Exercise names that have a pre-recorded clip (audio/exercises.json).
+  let exManifest = null;
+  function exAvailable() {
+    if (!exManifest) {
+      exManifest = fetch('audio/exercises.json')
+        .then((r) => (r.ok ? r.json() : []))
+        .then((a) => new Set(a))
+        .catch(() => { exManifest = null; return new Set(); });
+    }
+    return exManifest;
+  }
+  const exSpoken = (ex) => Routine.spoken(ex.name);
+  const exClip = (ex) => `ex/${Routine.slug(exSpoken(ex))}`;
+  const exPart = (ex) => [exClip(ex), exSpoken(ex)];
+
   function loadClips(set) {
     if (!isClipVoice(set) || !ctx) return Promise.resolve();
-    if (loading[set]) return loading[set];
-    const b = buffers[set] = buffers[set] || {};
-    loading[set] = Promise.all(CLIPS.map((name) =>
-      fetch(`audio/${set}/${name}.mp3`)
-        .then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
-        .then(decode)
-        .then((buf) => { b[name] = buf; })
-        .catch(() => { /* falls back to speechSynthesis */ })));
-    return loading[set];
+    const base = Promise.all([...CLIPS, 'next', 'first'].map((n) => loadClip(set, n)));
+    const items = routine.slice();
+    const names = exAvailable().then((av) => Promise.all(items
+      .filter((ex) => av.has(exClip(ex).slice(3)))
+      .map((ex) => loadClip(set, exClip(ex)))));
+    return Promise.all([base, names]);
   }
   const clipCount = (set) => CLIPS.filter((c) => buffers[set] && buffers[set][c]).length;
+  const exClipCount = (set) => routine.filter((ex) => buffers[set] && buffers[set][exClip(ex)]).length;
 
   function unlockAudio() {
     // Safari 16.4+: behave like a media app (plays with the silent switch on).
@@ -274,7 +316,7 @@
         src.start(0);
       } catch (_) { /* ignore */ }
     }
-    if (!speechPrimed && 'speechSynthesis' in window && !isClipVoice(S.voice)) {
+    if (!speechPrimed && 'speechSynthesis' in window) {
       try {
         const u = new SpeechSynthesisUtterance(' ');
         u.volume = 0;
@@ -290,6 +332,10 @@
     if (ctx && ctx.state !== 'running') unlockAudio();
   }, { passive: true });
 
+  const activeVoice = new Set();
+  let voiceBusyUntil = 0; // audio-clock time when the current announcement ends
+
+  // Plays a recorded clip; returns its duration in seconds, or false.
   function playBuffer(name, delay) {
     const buf = buffers[S.voice] && buffers[S.voice][name];
     if (!ctx || !buf) return false;
@@ -298,17 +344,48 @@
       const src = ctx.createBufferSource();
       src.buffer = buf;
       src.connect(master);
-      src.start(ctx.currentTime + (delay || 0));
+      const at = ctx.currentTime + (delay || 0);
+      src.start(at);
+      activeVoice.add(src);
+      src.onended = () => activeVoice.delete(src);
+      voiceBusyUntil = Math.max(voiceBusyUntil, at + buf.duration);
       if (window.__wtLog) window.__wtLog(name);
-      return true;
+      return buf.duration;
     } catch (_) { return false; }
   }
 
-  function say(clip, text, delay) {
-    if (isClipVoice(S.voice) && playBuffer(clip, delay)) return;
-    if (delay) setTimeout(() => speak(text), delay * 1000);
+  // (+0.3 s tail so a tick never lands right on the end of a word)
+  const voiceBusy = (inSec = 0) => !!ctx && ctx.currentTime + inSec < voiceBusyUntil + 0.3;
+
+  function stopVoice() {
+    activeVoice.forEach((src) => { try { src.stop(); } catch (_) { /* ignore */ } });
+    activeVoice.clear();
+    voiceBusyUntil = 0;
+    stopSpeech();
+  }
+
+  function speakLater(text, delaySec) {
+    if (delaySec > 0) setTimeout(() => speak(text), delaySec * 1000);
     else speak(text);
   }
+
+  // Say several parts back to back: [[clipName, fallbackText], ...].
+  // Parts without a recorded clip (e.g. an exercise you added yourself) are
+  // spoken by the iPhone's speech engine instead.
+  function sayChain(parts, delay = 0) {
+    let t = delay;
+    if (isClipVoice(S.voice)) {
+      for (let i = 0; i < parts.length; i++) {
+        const d = playBuffer(parts[i][0], t);
+        if (d === false) { speakLater(parts.slice(i).map((p) => p[1]).join(' '), t); return; }
+        t += d + 0.08;
+      }
+      return;
+    }
+    speakLater(parts.map((p) => p[1]).join(' '), t);
+  }
+
+  function say(clip, text, delay) { sayChain([[clip, text]], delay || 0); }
 
   // ---- ticking: a short band-passed noise click, alternating "tick"/"tock".
   // Scheduled on the audio clock just ahead of each second boundary so it
@@ -356,6 +433,7 @@
     const sec = ceilSec(rem);
     const limit = seg.type === 'work' ? S.countdown : seg.type === 'prep' ? Math.min(3, S.countdown) : 0;
     if (S.countdownMode !== 'off' && sec <= limit) return; // countdown "5…1"
+    if (voiceBusy((at - e) / 1000)) return;                // exercise announcement
     tickParity ^= 1;
     playTick((at - e) / 1000, tickParity === 1);
   }
@@ -460,6 +538,7 @@
     phase: $('phaseLabel'), roundNow: $('roundNow'), totalLeft: $('totalLeft'),
     roundsLeft: $('roundsLeft'), nextLabel: $('nextLabel'), nextTime: $('nextTime'),
     progress: $('progressFill'),
+    exTag: $('exTag'), exPos: $('exPos'), exName: $('exName'),
   };
   const LABEL = { prep: 'GET READY', work: 'WORK', rest: 'REST', done: 'DONE' };
   const COLOR = { prep: 'var(--prep)', work: 'var(--work)', rest: 'var(--rest)', done: 'var(--done)' };
@@ -487,7 +566,15 @@
       `phase-${type}`,
       `status-${T.status}`,
       T.status === 'running' && type === 'work' && sec <= S.countdown ? 'final' : '',
+      routine.length ? 'has-routine' : '',
     ].join(' ').trim());
+
+    if (routine.length) {
+      const ex = seg && seg.ex;
+      set('exTag', el.exTag, 'textContent', !seg ? '' : type === 'work' ? '' : type === 'prep' ? 'FIRST UP' : 'UP NEXT');
+      set('exPos', el.exPos, 'textContent', ex ? ex.position.toUpperCase() : '');
+      set('exName', el.exName, 'textContent', ex ? ex.name : seg ? '' : 'Workout complete — great job!');
+    }
 
     if (set('clock', el.clock, 'innerHTML', clockHTML(clockStr))) {
       if (last.clockLen !== clockStr.length) { last.clockLen = clockStr.length; fitClock(); }
@@ -495,9 +582,10 @@
     set('phase', el.phase, 'textContent', LABEL[type]);
 
     const workDone = segs.filter((s) => s.type === 'work' && s.start + s.dur <= e).length;
-    const roundsLeft = S.rounds - workDone;
-    const curRound = seg ? seg.round : S.rounds;
-    set('round', el.roundNow, 'textContent', `${curRound}/${S.rounds}`);
+    const n = roundCount();
+    const roundsLeft = n - workDone;
+    const curRound = seg ? seg.round : n;
+    set('round', el.roundNow, 'textContent', `${curRound}/${n}`);
     set('rleft', el.roundsLeft, 'textContent', String(roundsLeft));
     set('total', el.totalLeft, 'textContent', fmt(ceilSec(total - e)));
 
@@ -593,6 +681,8 @@
     f('voice').value = src.voice || DEFAULTS.voice;
     if (!f('voice').value) f('voice').value = DEFAULTS.voice;
     f('tick').checked = !!src.tick;
+    f('useRoutine').checked = !!src.useRoutine;
+    f('routine').value = src.routineText || '';
     updateSummary();
   }
 
@@ -604,15 +694,35 @@
     s.volume = Math.min(1, Math.max(0.1, Number(f('volume').value) || 1));
     s.voice = f('voice').value || DEFAULTS.voice;
     s.tick = f('tick').checked;
+    s.useRoutine = f('useRoutine').checked;
+    s.routineText = f('routine').value;
     return s;
   }
 
   function updateSummary() {
     const s = readForm();
-    const totalSec = s.prep + s.rounds * s.work + (s.rounds - 1) * s.rest;
-    $('summary').innerHTML = `${s.rounds} × (${fmt(s.work)} work + ${fmt(s.rest)} rest) — total <b>${fmt(totalSec)}</b>` +
-      (s.prep ? ` incl. ${s.prep}s get-ready` : '');
+    const items = parseRoutine(s);
+    f('rounds').disabled = items.length > 0;
+    f('rounds').closest('.row').classList.toggle('disabled', items.length > 0);
+    $('routineCount').textContent = s.useRoutine ? `${items.length} exercises` : 'off';
+    let totalSec;
+    let text;
+    if (items.length) {
+      const workSec = items.reduce((a, ex) => a + Math.max(1, Math.round(s.work * ex.min)), 0);
+      totalSec = s.prep + workSec + (items.length - 1) * s.rest;
+      text = `${items.length} exercises (${fmt(workSec)} work) + ${fmt(s.rest)} rest between`;
+    } else {
+      totalSec = s.prep + s.rounds * s.work + (s.rounds - 1) * s.rest;
+      text = `${s.rounds} × (${fmt(s.work)} work + ${fmt(s.rest)} rest)`;
+    }
+    $('summary').innerHTML = `${text} — total <b>${fmt(totalSec)}</b>` + (s.prep ? ` incl. ${s.prep}s get-ready` : '');
   }
+
+  $('btnRoutineDefault').addEventListener('click', () => {
+    f('routine').value = Routine.DEFAULT_TEXT;
+    f('useRoutine').checked = true;
+    updateSummary();
+  });
 
   function populateVoiceSelect() {
     const sel = $('f-voice');
@@ -642,7 +752,7 @@
       updateSummary();
     });
   });
-  sheet.querySelectorAll('input, select').forEach((i) => i.addEventListener('input', updateSummary));
+  sheet.querySelectorAll('input, select, textarea').forEach((i) => i.addEventListener('input', updateSummary));
 
   $('btnDefaults').addEventListener('click', () => fillForm(DEFAULTS));
 
@@ -662,10 +772,13 @@
         if (form.tick) { playTick(0, true); playTick(1, false); t = 2; }
         if (form.phaseBeep) setTimeout(() => beep(1320, 0.14), t * 1000);
         const g = form.phaseBeep ? 0.16 : 0;
-        [['work', 0], ['5', 1.2], ['4', 2.2], ['3', 3.2], ['2', 4.2], ['1', 5.2], ['rest', 6.2]]
+        [['work', 0], ['5', 1.2], ['4', 2.2], ['3', 3.2], ['2', 4.2], ['1', 5.2]]
           .forEach(([name, at]) => playBuffer(name, t + at + g));
+        const firstEx = routine[0];
+        sayChain([['rest', 'Rest!']].concat(firstEx ? [['next', 'Next:'], exPart(firstEx)] : []), t + 6.2 + g);
         S = prev;
-        toast(`Audio ${ctx.state} · voice clips ${clipCount(form.voice)}/${CLIPS.length}`, 3500);
+        const exInfo = routine.length ? ` · exercise names ${exClipCount(form.voice)}/${routine.length}` : '';
+        toast(`Audio ${ctx.state} · voice clips ${clipCount(form.voice)}/${CLIPS.length}${exInfo}`, 4000);
       });
     } else {
       S = form;
@@ -678,17 +791,19 @@
 
   $('btnSave').addEventListener('click', () => {
     const next = readForm();
-    const timingChanged = NUM_KEYS.some((k) => next[k] !== S[k]);
+    const timingChanged = NUM_KEYS.some((k) => next[k] !== S[k]) ||
+      next.useRoutine !== S.useRoutine || next.routineText !== S.routineText;
     S = next;
     if (master) master.gain.value = S.volume;
-    loadClips(S.voice);
     saveSettings();
     closeSettings();
     if (timingChanged) {
       buildSchedule();
+      loadClips(S.voice);
       reset();
       toast('Saved · timer reset');
     } else {
+      loadClips(S.voice);
       toast('Saved', 900);
     }
   });

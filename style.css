@@ -106,6 +106,48 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .status-running .i-play { display: none; }
 .status-running .i-pause { display: block; }
 
+/* ---------- exercise line ---------- */
+.ex-line { display: none; }
+.has-routine .ex-line {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: clamp(34px, 12vh, 60px);
+  padding: 4px var(--sr) 0 var(--sl);
+  font-weight: 800;
+  font-size: clamp(17px, 7.6vh, 34px);
+  line-height: 1.1;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ex-tag:empty, .ex-pos:empty { display: none; }
+.ex-tag { color: var(--phase); font-size: .62em; letter-spacing: .08em; }
+.ex-pos {
+  flex: 0 0 auto;
+  font-size: .5em;
+  letter-spacing: .08em;
+  color: #000;
+  background: var(--phase);
+  border-radius: 6px;
+  padding: .25em .5em .2em;
+}
+.ex-name { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.phase-rest .ex-name, .phase-prep .ex-name { color: #d6d6d6; }
+@media (orientation: portrait) {
+  .has-routine .ex-line {
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+    white-space: normal;
+    font-size: 26px;
+    padding-top: 14px;
+    row-gap: 6px;
+  }
+  .has-routine .ex-name { flex-basis: 100%; overflow: visible; }
+}
+
 /* ---------- clock ---------- */
 .clock-area {
   flex: 1 1 auto;
@@ -289,4 +331,16 @@ input[type=range] { width: 50%; accent-color: var(--neon); }
 .summary b { color: var(--text); }
 .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .text-btn { background: #2c2f31; border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 700; }
+.row.disabled { opacity: .4; }
+.routine-edit { margin-top: 8px; }
+.routine-edit summary { cursor: pointer; font-weight: 700; color: var(--neon); padding: 6px 0; }
+.routine-edit .hint { color: var(--muted); font-size: 13px; margin: 4px 0 8px; }
+.routine-edit code { color: var(--text); }
+.routine-edit textarea {
+  width: 100%; min-height: 220px; background: #0f1011; color: var(--text); border: 1px solid #333;
+  border-radius: 10px; padding: 8px 10px; font: 14px/1.45 ui-monospace, Menlo, monospace; resize: vertical;
+  -webkit-user-select: text; user-select: text;
+}
+.routine-edit .actions { margin-top: 8px; }
+.sheet-head { position: sticky; top: -14px; background: #1b1d1e; z-index: 1; padding: 4px 0; }
 .primary { background: var(--neon); color: #000; border: 0; border-radius: 12px; padding: 10px 26px; font-weight: 800; }

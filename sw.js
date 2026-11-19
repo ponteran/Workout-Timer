@@ -1,17 +1,25 @@
 // Offline support: network first (so updates arrive immediately), cache as
 // fallback when offline.
-const CACHE = 'workout-timer-v3';
+const CACHE = 'workout-timer-v4';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
+  './routine.js',
   './app.js',
+  './audio/exercises.json',
   './manifest.webmanifest',
   './fonts/BebasNeue-Regular.woff2',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
   './audio/silence.mp3',
+  './audio/coach/next.mp3',
+  './audio/coach/first.mp3',
+  './audio/coach-uk/next.mp3',
+  './audio/coach-uk/first.mp3',
+  './audio/warm/next.mp3',
+  './audio/warm/first.mp3',
   './audio/coach/work.mp3',
   './audio/coach/rest.mp3',
   './audio/coach/ready.mp3',

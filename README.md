@@ -4,6 +4,7 @@ An interval timer for a morning PT workout, built as a web app you can install o
 
 - Defaults: **60 s work / 5 s rest × 30 rounds**, plus a 5 s "Get ready". All of these can be changed in ⚙︎ Settings.
 - A female voice says **"Work!"** and **"Rest!"** when each phase starts. It counts down **5‑4‑3‑2‑1** at the end of every work period and says "Workout complete" at the finish.
+- **Exercise list (morning PT):** each line of the list is one round. The screen shows the current exercise and its position (Supine, Seated, …). During each 5‑second rest it shows **UP NEXT**, and the voice says *"Rest! Next: glute bridge, left."* so you know what to set up. The "Hamstring PNF" line counts as two minutes, so it's one 2‑minute work block. With the default list the whole workout takes 29:10: 26 exercises adding up to 27 minutes of work, plus the rests and the 5‑second get‑ready. You can edit the list in ⚙︎ → *Edit exercise list* (one line per exercise: `minutes | position | exercise`), or switch it off to go back to plain rounds.
 - Optional subtle **tick‑tock** every second (⚙︎ → Ticking sound). It stays quiet on seconds that already have a voice cue.
 - Very large fluorescent‑green digits. The top bar is green for WORK, red for REST and amber for GET READY. The footer shows rounds left and what comes next.
 - The layout fits on one screen in landscape on an iPhone, and also works in portrait.
@@ -22,7 +23,7 @@ An interval timer for a morning PT workout, built as a web app you can install o
 The voice cues are short recordings that come with the app (`audio/<voice>/*.mp3`). They were made with the open-source Kokoro TTS model (Apache-2.0). There are three voices to choose from in ⚙︎ → Voice:
 - **Coach – firm (US)**, the default: Kokoro `af_bella`, pitched down about 2 semitones and compressed so it sounds punchier.
 - **Coach – firm (British)**: `bf_emma`, processed the same way.
-- **Warm (US)**: `af_heart`, the original voice. They play through Web Audio, which works much more reliably on iOS than the browser's speech engine. You can switch to the iPhone's own voices in ⚙︎ → Voice.
+- **Warm (US)**: `af_heart`, the original voice. They play through Web Audio, which works much more reliably on iOS than the browser's speech engine. You can switch to the iPhone's own voices in ⚙︎ → Voice. Exercise names you add or rename yourself have no recording, so the iPhone's speech engine reads them instead. Ask Claude to record new clips if that voice isn't reliable on your phone.
 
 ## Tips for reliable audio on iOS
 
@@ -34,4 +35,4 @@ The voice cues are short recordings that come with the app (`audio/<voice>/*.mp3
 
 ## Files
 
-`index.html`, `style.css`, `app.js` (all logic), `sw.js` (offline cache), `manifest.webmanifest`, `icons/`, `fonts/` (Bebas Neue, OFL), `audio/` (voice clips). There's no build step. To run it locally: `python3 -m http.server`, then open http://localhost:8000.
+`index.html`, `style.css`, `app.js` (all logic), `sw.js` (offline cache), `manifest.webmanifest`, `icons/`, `routine.js` (default exercise list, parser, spoken names), `fonts/` (Bebas Neue, OFL), `audio/` (voice clips; `audio/<voice>/ex/` holds the exercise names and `audio/exercises.json` lists them). There's no build step. To run it locally: `python3 -m http.server`, then open http://localhost:8000.

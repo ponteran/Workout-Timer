@@ -40,6 +40,12 @@
       </div>
     </header>
 
+    <div class="ex-line" aria-live="polite">
+      <span id="exTag" class="ex-tag"></span>
+      <span id="exPos" class="ex-pos"></span>
+      <span id="exName" class="ex-name"></span>
+    </div>
+
     <main id="clockArea" class="clock-area" aria-live="off">
       <div id="clock" class="clock">01:00</div>
       <div id="badge" class="badge">TAP TO START</div>
@@ -112,6 +118,10 @@
           <input id="f-phaseBeep" type="checkbox" class="switch">
         </div>
         <div class="row">
+          <label for="f-useRoutine">Exercise list <small id="routineCount"></small></label>
+          <input id="f-useRoutine" type="checkbox" class="switch">
+        </div>
+        <div class="row">
           <label for="f-tick">Ticking sound</label>
           <input id="f-tick" type="checkbox" class="switch">
         </div>
@@ -125,9 +135,16 @@
         </div>
       </div>
       <p id="summary" class="summary"></p>
+      <details class="routine-edit">
+        <summary>Edit exercise list</summary>
+        <p class="hint">One exercise per line: <code>minutes | position | exercise</code>. "minutes" is how many work periods it lasts (2 = one 2‑minute block). Exercises from your PT list have a recorded voice. New or renamed ones are read by the iPhone voice.</p>
+        <textarea id="f-routine" rows="10" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+        <div class="actions"><button id="btnRoutineDefault" class="text-btn" type="button">Reset to PT list</button></div>
+      </details>
     </div>
   </div>
 
+  <script src="routine.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
