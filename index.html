@@ -92,6 +92,10 @@
           <label for="f-rest">Rest <small>sec</small></label>
           <div class="stepper"><button type="button" data-d="-1">−</button><input id="f-rest" type="number" inputmode="numeric" min="0" max="3600"><button type="button" data-d="1">+</button></div>
         </div>
+        <div class="row" data-key="restChange">
+          <label for="f-restChange">Rest on position change <small>sec</small></label>
+          <div class="stepper"><button type="button" data-d="-1">−</button><input id="f-restChange" type="number" inputmode="numeric" min="0" max="3600"><button type="button" data-d="1">+</button></div>
+        </div>
         <div class="row" data-key="rounds">
           <label for="f-rounds">Rounds</label>
           <div class="stepper"><button type="button" data-d="-1">−</button><input id="f-rounds" type="number" inputmode="numeric" min="1" max="99"><button type="button" data-d="1">+</button></div>
@@ -137,7 +141,7 @@
       <p id="summary" class="summary"></p>
       <details class="routine-edit">
         <summary>Edit exercise list</summary>
-        <p class="hint">One exercise per line: <code>minutes | position | exercise</code>. "minutes" is how many work periods it lasts (2 = one 2‑minute block). Exercises from your PT list have a recorded voice. New or renamed ones are read by the iPhone voice.</p>
+        <p class="hint">One exercise per line: <code>minutes | position | exercise</code>, optionally followed by <code>| relax 10, extend 30</code> to split it into repeating timed parts, each with its own cue. "minutes" is how many work periods it lasts (2 = one 2‑minute block). Exercises from your PT list have a recorded voice. New or renamed ones are read by the iPhone voice.</p>
         <textarea id="f-routine" rows="10" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
         <div class="actions"><button id="btnRoutineDefault" class="text-btn" type="button">Reset to PT list</button></div>
       </details>

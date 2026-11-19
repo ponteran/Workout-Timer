@@ -7,6 +7,7 @@
   const DEFAULTS = {
     work: 60,            // seconds
     rest: 5,             // seconds
+    restChange: 10,      // rest before an exercise in a different position
     rounds: 30,
     prep: 5,             // "get ready" lead-in before round 1 (0 = off)
     countdown: 5,        // spoken countdown during the last N seconds of work
@@ -16,9 +17,10 @@
     tick: true,          // subtle clock tick every second
     useRoutine: true,    // follow the exercise list (one exercise per round)
     routineText: (window.Routine && Routine.DEFAULT_TEXT) || '',
+    rv: 2,               // settings revision (for migrations)
     volume: 1,
   };
-  const LIMITS = { work: [1, 3600], rest: [0, 3600], rounds: [1, 99], prep: [0, 60], countdown: [0, 10] };
+  const LIMITS = { work: [1, 3600], rest: [0, 3600], restChange: [0, 3600], rounds: [1, 99], prep: [0, 60], countdown: [0, 10] };
   const STORE_KEY = 'workoutTimer.settings.v1';
 
   // Speech engines start talking ~100-300 ms after speak() is called, so audio
@@ -41,6 +43,12 @@
     for (const k of Object.keys(LIMITS)) s[k] = clampInt(s[k], LIMITS[k], DEFAULTS[k]);
     if (!s.voice || s.voice === 'clips') s.voice = DEFAULTS.voice; // migrate older settings
     delete s.voiceURI;
+    if (!saved.rv && typeof s.routineText === 'string') {
+      // rev 2: Hamstring PNF got its relax/extend intervals
+      s.routineText = s.routineText.replace(
+        /^(\s*2\s*\|\s*Supine\s*\|\s*Hamstring PNF — BILATERAL 3 cycles)\s*$/m, '$1 | relax 10, extend 30');
+    }
+    s.rv = DEFAULTS.rv;
     return s;
   }
   function saveSettings() {
@@ -57,25 +65,67 @@
   const parseRoutine = (s) => (s.useRoutine && window.Routine ? Routine.parse(s.routineText) : []);
   const roundCount = () => routine.length || S.rounds;
 
-  // Each segment: {type, dur, start, round, ex}. For work, `ex` is the
-  // exercise being done; for rest/prep it is the exercise coming up next.
-  function buildSchedule() {
-    routine = parseRoutine(S);
-    const n = roundCount();
-    segs = [];
+  // Each segment: {type, dur, start, round, ex, last, sub, change}.
+  //  - work: `ex` is the exercise being done. An exercise with intervals
+  //    ("relax 10, extend 30") becomes several work segments, each with
+  //    `sub` = {label, step, cycle, cycles}; `last` marks its final one.
+  //  - rest/prep: `ex` is the exercise coming up next; `change` = the next
+  //    exercise is in a different position (longer rest).
+  const samePos = (a, b) => !a || !b || !a.position || !b.position ||
+    a.position.trim().toLowerCase() === b.position.trim().toLowerCase();
+
+  function makeSchedule(s) {
+    const items = parseRoutine(s);
+    const n = items.length || s.rounds;
+    const out = [];
     let t = 0;
-    const add = (type, sec, round, ex) => {
+    const add = (type, sec, round, ex, extra) => {
       if (sec <= 0) return;
-      segs.push({ type, dur: sec * 1000, start: t, round, ex: ex || null });
+      out.push(Object.assign({ type, dur: sec * 1000, start: t, round, ex: ex || null, last: true }, extra));
       t += sec * 1000;
     };
-    add('prep', S.prep, 1, routine[0]);
+    add('prep', s.prep, 1, items[0]);
     for (let r = 1; r <= n; r++) {
-      const ex = routine[r - 1];
-      add('work', Math.max(1, Math.round(S.work * (ex ? ex.min : 1))), r, ex);
-      if (r < n) add('rest', S.rest, r, routine[r]);   // no rest after the final round
+      const ex = items[r - 1];
+      const workSec = Math.max(1, Math.round(s.work * (ex ? ex.min : 1)));
+      if (ex && ex.steps && ex.steps.length) {
+        const cycleSec = ex.steps.reduce((a, st) => a + st.sec, 0);
+        const cycles = Math.ceil(workSec / cycleSec);
+        let left = workSec;
+        let cycle = 1;
+        let i = 0;
+        while (left > 0) {
+          const st = ex.steps[i];
+          const d = Math.min(st.sec, left);
+          left -= d;
+          add('work', d, r, ex, { sub: { label: st.label, step: i, cycle, cycles }, last: left <= 0 });
+          if (++i >= ex.steps.length) { i = 0; cycle++; }
+        }
+      } else {
+        add('work', workSec, r, ex);
+      }
+      if (r < n) {                                   // no rest after the final round
+        const next = items[r];
+        const change = !!(ex && next && !samePos(ex, next));
+        add('rest', change ? s.restChange : s.rest, r, next, { change });
+      }
     }
-    total = t;
+    return { segs: out, total: t, routine: items };
+  }
+
+  function buildSchedule() {
+    const sc = makeSchedule(S);
+    segs = sc.segs;
+    total = sc.total;
+    routine = sc.routine;
+  }
+
+  // How many seconds are counted down at the end of a segment.
+  function countLimit(seg) {
+    if (!seg) return 0;
+    if (seg.type === 'prep') return Math.min(3, S.countdown);
+    if (seg.type === 'work') return seg.last ? S.countdown : Math.min(3, S.countdown);
+    return 0;
   }
 
   function locate(ms) {
@@ -178,8 +228,7 @@
     A.sec = sec;
     const seg = segs[idx];
     if (!seg || sec < 1) return;
-    const limit = seg.type === 'work' ? S.countdown : seg.type === 'prep' ? Math.min(3, S.countdown) : 0;
-    if (sec <= limit) cueCount(sec);
+    if (sec <= countLimit(seg)) cueCount(sec);
   }
 
   function cuePhase(idx) {
@@ -192,13 +241,24 @@
       return;
     }
     const seg = segs[idx];
-    if (seg.type === 'work') {
+    if (seg.type === 'work' && seg.sub) {
+      // Interval inside an exercise, e.g. "Relax." / "Extend!"
+      if (beepFirst) beep(seg.sub.step % 2 ? 1320 : 990, 0.14);
+      say(cueClip(seg.sub.label), `${seg.sub.label}!`, gap);
+    } else if (seg.type === 'work') {
       if (beepFirst) beep(1320, 0.14);
       say('work', 'Work!', gap);
     } else if (seg.type === 'rest') {
       if (beepFirst) beep(660, 0.14);
-      // "Rest! Next: glute bridge, left." – announced during the transition.
-      sayChain([['rest', 'Rest!']].concat(seg.ex ? [['next', 'Next:'], exPart(seg.ex)] : []), gap);
+      // "Rest! Next: glute bridge, left." – announced during the transition;
+      // the new position is named too when it changes ("Next: prone. …").
+      const parts = [['rest', 'Rest!']];
+      if (seg.ex) {
+        parts.push(['next', 'Next:']);
+        if (seg.change) parts.push(posPart(seg.ex));
+        parts.push(exPart(seg.ex));
+      }
+      sayChain(parts, gap);
     } else {
       sayChain([['ready', 'Get ready.']].concat(seg.ex ? [['first', 'First up:'], exPart(seg.ex)] : []), 0);
     }
@@ -281,6 +341,8 @@
   const exSpoken = (ex) => Routine.spoken(ex.name);
   const exClip = (ex) => `ex/${Routine.slug(exSpoken(ex))}`;
   const exPart = (ex) => [exClip(ex), exSpoken(ex)];
+  const posPart = (ex) => [`pos/${Routine.slug(ex.position)}`, `${ex.position}.`];
+  const cueClip = (label) => `cue/${Routine.slug(label)}`;
 
   function loadClips(set) {
     if (!isClipVoice(set) || !ctx) return Promise.resolve();
@@ -289,7 +351,13 @@
     const names = exAvailable().then((av) => Promise.all(items
       .filter((ex) => av.has(exClip(ex).slice(3)))
       .map((ex) => loadClip(set, exClip(ex)))));
-    return Promise.all([base, names]);
+    const extra = new Set();
+    items.forEach((ex) => {
+      if (ex.position) extra.add(posPart(ex)[0]);
+      (ex.steps || []).forEach((st) => extra.add(cueClip(st.label)));
+    });
+    const more = Promise.all([...extra].map((n) => loadClip(set, n)));
+    return Promise.all([base, names, more]);
   }
   const clipCount = (set) => CLIPS.filter((c) => buffers[set] && buffers[set][c]).length;
   const exClipCount = (set) => routine.filter((ex) => buffers[set] && buffers[set][exClip(ex)]).length;
@@ -431,8 +499,7 @@
     if (idx !== prev.idx) return;                       // phase change: "Work!" / "Rest!"
     const seg = segs[idx];
     const sec = ceilSec(rem);
-    const limit = seg.type === 'work' ? S.countdown : seg.type === 'prep' ? Math.min(3, S.countdown) : 0;
-    if (S.countdownMode !== 'off' && sec <= limit) return; // countdown "5…1"
+    if (S.countdownMode !== 'off' && sec <= countLimit(seg)) return; // countdown "5…1"
     if (voiceBusy((at - e) / 1000)) return;                // exercise announcement
     tickParity ^= 1;
     playTick((at - e) / 1000, tickParity === 1);
@@ -543,6 +610,7 @@
   const LABEL = { prep: 'GET READY', work: 'WORK', rest: 'REST', done: 'DONE' };
   const COLOR = { prep: 'var(--prep)', work: 'var(--work)', rest: 'var(--rest)', done: 'var(--done)' };
   const last = {};
+  const segLabel = (seg) => (!seg ? LABEL.done : seg.sub ? seg.sub.label.toUpperCase() : LABEL[seg.type]);
 
   function set(key, node, prop, value) {
     if (last[key] === value) return false;
@@ -565,13 +633,17 @@
     set('cls', el.app, 'className', [
       `phase-${type}`,
       `status-${T.status}`,
-      T.status === 'running' && type === 'work' && sec <= S.countdown ? 'final' : '',
+      T.status === 'running' && type === 'work' && sec <= countLimit(seg) ? 'final' : '',
+      seg && seg.sub ? `sub-${seg.sub.step % 2}` : '',
       routine.length ? 'has-routine' : '',
     ].join(' ').trim());
 
     if (routine.length) {
       const ex = seg && seg.ex;
-      set('exTag', el.exTag, 'textContent', !seg ? '' : type === 'work' ? '' : type === 'prep' ? 'FIRST UP' : 'UP NEXT');
+      let tag = '';
+      if (seg && type === 'work') tag = seg.sub ? `CYCLE ${seg.sub.cycle}/${seg.sub.cycles}` : '';
+      else if (seg) tag = type === 'prep' ? 'FIRST UP' : seg.change ? 'NEW POSITION' : 'UP NEXT';
+      set('exTag', el.exTag, 'textContent', tag);
       set('exPos', el.exPos, 'textContent', ex ? ex.position.toUpperCase() : '');
       set('exName', el.exName, 'textContent', ex ? ex.name : seg ? '' : 'Workout complete — great job!');
     }
@@ -579,9 +651,9 @@
     if (set('clock', el.clock, 'innerHTML', clockHTML(clockStr))) {
       if (last.clockLen !== clockStr.length) { last.clockLen = clockStr.length; fitClock(); }
     }
-    set('phase', el.phase, 'textContent', LABEL[type]);
+    set('phase', el.phase, 'textContent', segLabel(seg));
 
-    const workDone = segs.filter((s) => s.type === 'work' && s.start + s.dur <= e).length;
+    const workDone = segs.filter((s) => s.type === 'work' && s.last && s.start + s.dur <= e).length;
     const n = roundCount();
     const roundsLeft = n - workDone;
     const curRound = seg ? seg.round : n;
@@ -591,9 +663,10 @@
 
     const next = seg ? segs[idx + 1] : null;
     const nType = next ? next.type : 'done';
-    set('nlabel', el.nextLabel, 'textContent', next ? LABEL[nType] : (seg ? 'FINISH' : '—'));
+    set('nlabel', el.nextLabel, 'textContent', next ? segLabel(next) : (seg ? 'FINISH' : '—'));
     set('ntime', el.nextTime, 'textContent', next ? fmt(next.dur / 1000) : '');
-    if (last.ncolor !== nType) { last.ncolor = nType; el.nextLabel.style.color = COLOR[nType]; }
+    const nColor = next && next.sub && next.sub.step % 2 === 0 ? 'var(--sub)' : COLOR[nType];
+    if (last.ncolor !== nColor) { last.ncolor = nColor; el.nextLabel.style.color = nColor; }
 
     const frac = seg ? 1 - rem / seg.dur : 1;
     el.progress.style.width = `${(frac * 100).toFixed(2)}%`;
@@ -670,7 +743,7 @@
 
   // ---------------------------------------------------------------- settings UI
   const sheet = $('settings');
-  const NUM_KEYS = ['work', 'rest', 'rounds', 'prep', 'countdown'];
+  const NUM_KEYS = ['work', 'rest', 'restChange', 'rounds', 'prep', 'countdown'];
   const f = (k) => $(`f-${k}`);
 
   function fillForm(src) {
@@ -705,14 +778,13 @@
     f('rounds').disabled = items.length > 0;
     f('rounds').closest('.row').classList.toggle('disabled', items.length > 0);
     $('routineCount').textContent = s.useRoutine ? `${items.length} exercises` : 'off';
-    let totalSec;
+    const sc = makeSchedule(s);
+    const totalSec = sc.total / 1000;
     let text;
     if (items.length) {
-      const workSec = items.reduce((a, ex) => a + Math.max(1, Math.round(s.work * ex.min)), 0);
-      totalSec = s.prep + workSec + (items.length - 1) * s.rest;
-      text = `${items.length} exercises (${fmt(workSec)} work) + ${fmt(s.rest)} rest between`;
+      const changes = sc.segs.filter((g) => g.type === 'rest' && g.change).length;
+      text = `${items.length} exercises · rest ${s.rest}s, ${s.restChange}s on ${changes} position changes`;
     } else {
-      totalSec = s.prep + s.rounds * s.work + (s.rounds - 1) * s.rest;
       text = `${s.rounds} × (${fmt(s.work)} work + ${fmt(s.rest)} rest)`;
     }
     $('summary').innerHTML = `${text} — total <b>${fmt(totalSec)}</b>` + (s.prep ? ` incl. ${s.prep}s get-ready` : '');

@@ -10,6 +10,7 @@
   --rest: #ff3b30;
   --prep: #ffb020;
   --done: #3aa7ff;
+  --sub: #35d0ff;          /* first part of an interval exercise, e.g. RELAX */
   --blue: #3aa7ff;
   --bg: #0b0d0b;
   --text: #f2f2f2;
@@ -46,6 +47,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* ---------- phases ---------- */
 .phase-work { --phase: var(--work); --tint: #0e1a0a; }
 .phase-rest { --phase: var(--rest); --tint: #1f0c0b; }
+.phase-work.sub-0 { --phase: var(--sub); --tint: #0a1820; }
 .phase-prep { --phase: var(--prep); --tint: #1a150a; }
 .phase-done { --phase: var(--done); --tint: #0b1421; }
 

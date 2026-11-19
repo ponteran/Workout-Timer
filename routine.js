@@ -6,12 +6,14 @@
 (function (root) {
   'use strict';
 
-  // One exercise per line:  minutes | position | exercise
+  // One exercise per line:  minutes | position | exercise [| intervals]
   // "minutes" = how many work periods the exercise lasts (2 = one 2-min block).
+  // Optional "intervals" splits the exercise into repeating timed parts,
+  // e.g. "relax 10, extend 30" = 10 s relax + 30 s extend, repeated.
   const DEFAULT_TEXT = [
     '1 | Supine | Knee extension, roller under BOTH knees',
     '1 | Supine | Knee flexion gapping, towel, BOTH knees',
-    '2 | Supine | Hamstring PNF — BILATERAL 3 cycles',
+    '2 | Supine | Hamstring PNF — BILATERAL 3 cycles | relax 10, extend 30',
     '1 | Supine | Hollow body hold',
     '1 | Seated | End-range knee ext., roller under BOTH heels',
     '1 | Seated | 90-90 hip switches - 2x10 / side',
@@ -37,7 +39,7 @@
     '1 | Standing | Stance eyes closed RIGHT',
   ].join('\n');
 
-  // Accepts "min | position | name", "min<TAB>position<TAB>name",
+  // Accepts "min | position | name [| intervals]", tab-separated columns,
   // "position | name" or just "name". Blank lines and "#" comments are skipped.
   function parse(text) {
     const items = [];
@@ -50,11 +52,25 @@
         min = Math.min(20, Math.max(0.25, Number(parts[0])));
         parts = parts.slice(1);
       }
+      let steps = [];
+      if (parts.length > 2) {
+        steps = parseSteps(parts[parts.length - 1]);
+        if (steps.length) parts = parts.slice(0, -1);
+      }
       const name = parts.length > 1 ? parts.slice(1).join(' ') : parts[0];
       const position = parts.length > 1 ? parts[0] : '';
-      if (name) items.push({ min, position, name });
+      if (name) items.push({ min, position, name, steps });
     });
     return items;
+  }
+
+  // "relax 10, extend 30" -> [{label:'relax', sec:10}, {label:'extend', sec:30}]
+  function parseSteps(text) {
+    const steps = [];
+    const re = /([A-Za-z][A-Za-z '’-]*?)\s*[:=]?\s*(\d+)\s*(?:s|sec|secs|seconds)?\b/g;
+    let m;
+    while ((m = re.exec(text))) steps.push({ label: m[1].trim().toLowerCase(), sec: Math.max(1, Number(m[2])) });
+    return steps;
   }
 
   // Turn the written name into something a voice reads naturally.
@@ -79,7 +95,7 @@
     return String(text).toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   }
 
-  const api = { DEFAULT_TEXT, parse, spoken, slug };
+  const api = { DEFAULT_TEXT, parse, parseSteps, spoken, slug };
   root.Routine = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
