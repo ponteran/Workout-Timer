@@ -12,7 +12,8 @@
     countdown: 5,        // spoken countdown during the last N seconds of work
     countdownMode: 'voice', // voice | beep | both | off
     phaseBeep: true,     // short tone together with "Work!" / "Rest!"
-    voice: 'clips',      // 'clips' = built-in recorded female voice, 'auto' = system female voice, or a system voiceURI
+    voice: 'coach',      // recorded set (coach | coach-uk | warm), 'auto' = system female voice, or a system voiceURI
+    tick: true,          // subtle clock tick every second
     volume: 1,
   };
   const LIMITS = { work: [1, 3600], rest: [0, 3600], rounds: [1, 99], prep: [0, 60], countdown: [0, 10] };
@@ -36,6 +37,8 @@
     try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || '{}') || {}; } catch (_) { /* ignore */ }
     const s = { ...DEFAULTS, ...saved };
     for (const k of Object.keys(LIMITS)) s[k] = clampInt(s[k], LIMITS[k], DEFAULTS[k]);
+    if (!s.voice || s.voice === 'clips') s.voice = DEFAULTS.voice; // migrate older settings
+    delete s.voiceURI;
     return s;
   }
   function saveSettings() {
@@ -115,6 +118,7 @@
     T.acc = 0;
     A.idx = -1;
     A.sec = -1;
+    lastTickAt = -1;
   }
 
   function reset() {
@@ -140,9 +144,10 @@
   function tick() {
     const e = elapsed();
     if (T.status === 'running') {
-      const lead = S.voice === 'clips' ? LEAD_CLIPS_MS : LEAD_SPEECH_MS;
+      const lead = isClipVoice(S.voice) ? LEAD_CLIPS_MS : LEAD_SPEECH_MS;
       const a = locate(Math.min(total, e + lead));
       audioCues(a.idx, a.rem, e);
+      scheduleTick(e);
       if (e >= total) finish();
     }
     render(Math.min(e, total));
@@ -198,7 +203,14 @@
   // these reliably (also in Home Screen mode). The browser's speech engine
   // (speechSynthesis) is only a fallback / optional alternative.
   const CLIPS = ['work', 'rest', 'ready', 'complete', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
-  const buffers = {};
+  const CLIP_SETS = {
+    coach: 'Coach – firm (US)',
+    'coach-uk': 'Coach – firm (British)',
+    warm: 'Warm (US)',
+  };
+  const isClipVoice = (v) => Object.prototype.hasOwnProperty.call(CLIP_SETS, v);
+  const buffers = {};   // buffers[set][clip]
+  const loading = {};   // loading[set] = Promise
   let ctx = null;
   let master = null;
   let speechPrimed = false;
@@ -213,7 +225,7 @@
       master = ctx.createGain();
       master.gain.value = S.volume;
       master.connect(ctx.destination);
-      loadClips();
+      loadClips(S.voice);
     } catch (_) { ctx = null; }
     return ctx;
   }
@@ -226,15 +238,19 @@
     });
   }
 
-  let clipsLoaded = Promise.resolve();
-  function loadClips() {
-    clipsLoaded = Promise.all(CLIPS.map((name) => buffers[name] ? null :
-      fetch(`audio/${name}.mp3`)
+  function loadClips(set) {
+    if (!isClipVoice(set) || !ctx) return Promise.resolve();
+    if (loading[set]) return loading[set];
+    const b = buffers[set] = buffers[set] || {};
+    loading[set] = Promise.all(CLIPS.map((name) =>
+      fetch(`audio/${set}/${name}.mp3`)
         .then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
         .then(decode)
-        .then((b) => { buffers[name] = b; })
+        .then((buf) => { b[name] = buf; })
         .catch(() => { /* falls back to speechSynthesis */ })));
+    return loading[set];
   }
+  const clipCount = (set) => CLIPS.filter((c) => buffers[set] && buffers[set][c]).length;
 
   function unlockAudio() {
     // Safari 16.4+: behave like a media app (plays with the silent switch on).
@@ -258,7 +274,7 @@
         src.start(0);
       } catch (_) { /* ignore */ }
     }
-    if (!speechPrimed && 'speechSynthesis' in window && S.voice !== 'clips') {
+    if (!speechPrimed && 'speechSynthesis' in window && !isClipVoice(S.voice)) {
       try {
         const u = new SpeechSynthesisUtterance(' ');
         u.volume = 0;
@@ -275,11 +291,12 @@
   }, { passive: true });
 
   function playBuffer(name, delay) {
-    if (!ctx || !buffers[name]) return false;
+    const buf = buffers[S.voice] && buffers[S.voice][name];
+    if (!ctx || !buf) return false;
     try {
       if (ctx.state !== 'running') ctx.resume();
       const src = ctx.createBufferSource();
-      src.buffer = buffers[name];
+      src.buffer = buf;
       src.connect(master);
       src.start(ctx.currentTime + (delay || 0));
       if (window.__wtLog) window.__wtLog(name);
@@ -288,9 +305,59 @@
   }
 
   function say(clip, text, delay) {
-    if (S.voice === 'clips' && playBuffer(clip, delay)) return;
+    if (isClipVoice(S.voice) && playBuffer(clip, delay)) return;
     if (delay) setTimeout(() => speak(text), delay * 1000);
     else speak(text);
+  }
+
+  // ---- ticking: a short band-passed noise click, alternating "tick"/"tock".
+  // Scheduled on the audio clock just ahead of each second boundary so it
+  // stays perfectly even (the UI timer only runs every ~100 ms).
+  let noise = null;
+  let lastTickAt = -1;
+  let tickParity = 0;
+
+  function playTick(delaySec, high) {
+    if (!ctx) return;
+    try {
+      if (!noise) {
+        const len = Math.floor(ctx.sampleRate * 0.03);
+        noise = ctx.createBuffer(1, len, ctx.sampleRate);
+        const d = noise.getChannelData(0);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (len / 6));
+      }
+      const t = ctx.currentTime + Math.max(0, delaySec);
+      const src = ctx.createBufferSource();
+      src.buffer = noise;
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = high ? 3400 : 2600;
+      bp.Q.value = 6;
+      const g = ctx.createGain();
+      g.gain.value = 0.9;
+      src.connect(bp);
+      bp.connect(g);
+      g.connect(master);
+      src.start(t);
+      if (window.__wtLog) window.__wtLog('tick');
+    } catch (_) { /* ignore */ }
+  }
+
+  function scheduleTick(e) {
+    if (!S.tick || !ctx) return;
+    const at = (Math.floor(e / 1000) + 1) * 1000; // next whole-second boundary
+    if (at === lastTickAt || at - e > 200 || at >= total) return;
+    lastTickAt = at;
+    // Stay quiet where a voice cue or beep already marks the second.
+    const { idx, rem } = locate(at + 1);
+    const prev = locate(at - 1);
+    if (idx !== prev.idx) return;                       // phase change: "Work!" / "Rest!"
+    const seg = segs[idx];
+    const sec = ceilSec(rem);
+    const limit = seg.type === 'work' ? S.countdown : seg.type === 'prep' ? Math.min(3, S.countdown) : 0;
+    if (S.countdownMode !== 'off' && sec <= limit) return; // countdown "5…1"
+    tickParity ^= 1;
+    playTick((at - e) / 1000, tickParity === 1);
   }
 
   function beep(freq, dur) {
@@ -330,7 +397,7 @@
     return i === -1 ? 999 : i;
   }
   function pickVoice() {
-    if (S.voice !== 'clips' && S.voice !== 'auto') {
+    if (!isClipVoice(S.voice) && S.voice !== 'auto') {
       const v = voices.find((x) => x.voiceURI === S.voice);
       if (v) return v;
     }
@@ -523,8 +590,9 @@
     f('countdownMode').value = src.countdownMode;
     f('phaseBeep').checked = !!src.phaseBeep;
     f('volume').value = src.volume;
-    f('voice').value = src.voice || 'clips';
-    if (!f('voice').value) f('voice').value = 'clips';
+    f('voice').value = src.voice || DEFAULTS.voice;
+    if (!f('voice').value) f('voice').value = DEFAULTS.voice;
+    f('tick').checked = !!src.tick;
     updateSummary();
   }
 
@@ -534,7 +602,8 @@
     s.countdownMode = f('countdownMode').value;
     s.phaseBeep = f('phaseBeep').checked;
     s.volume = Math.min(1, Math.max(0.1, Number(f('volume').value) || 1));
-    s.voice = f('voice').value || 'clips';
+    s.voice = f('voice').value || DEFAULTS.voice;
+    s.tick = f('tick').checked;
     return s;
   }
 
@@ -548,10 +617,10 @@
   function populateVoiceSelect() {
     const sel = $('f-voice');
     const current = sel.value || S.voice;
-    sel.innerHTML = '<option value="clips">Built-in female voice (recommended)</option>' +
+    sel.innerHTML = Object.entries(CLIP_SETS).map(([k, label]) => `<option value="${k}">${label}</option>`).join('') +
       '<option value="auto">iPhone voice – auto female</option>' + voices.map((v) =>
       `<option value="${v.voiceURI.replace(/"/g, '&quot;')}">${v.name.replace(/</g, '&lt;')} (${v.lang})</option>`).join('');
-    sel.value = (current === 'clips' || current === 'auto' || voices.some((v) => v.voiceURI === current)) ? current : 'clips';
+    sel.value = (isClipVoice(current) || current === 'auto' || voices.some((v) => v.voiceURI === current)) ? current : DEFAULTS.voice;
   }
 
   function openSettings() {
@@ -577,35 +646,33 @@
 
   $('btnDefaults').addEventListener('click', () => fillForm(DEFAULTS));
 
+  f('voice').addEventListener('change', () => loadClips(f('voice').value));
+
   $('btnTest').addEventListener('click', () => {
     unlockAudio();
     const form = readForm();
     if (master) master.gain.value = form.volume;
-    const report = () => {
-      const n = CLIPS.filter((c) => buffers[c]).length;
-      toast(`Audio ${ctx ? ctx.state : 'unsupported'} · voice clips ${n}/${CLIPS.length}`, 3500);
-    };
-    if (form.voice === 'clips') {
-      clipsLoaded.then(() => {
+    const prev = S;
+    if (isClipVoice(form.voice)) {
+      loadClips(form.voice).then(() => {
         if (!ctx) return;
-        const t = ctx.currentTime;
-        const seq = [['work', 0], ['5', 1.2], ['4', 2.2], ['3', 3.2], ['2', 4.2], ['1', 5.2], ['rest', 6.2]];
-        if (form.phaseBeep) beep(1320, 0.14);
-        seq.forEach(([name, at]) => {
-          if (!buffers[name]) return;
-          const src = ctx.createBufferSource();
-          src.buffer = buffers[name];
-          src.connect(master);
-          src.start(t + at + (form.phaseBeep ? 0.16 : 0));
-        });
-        report();
+        S = form;
+        // two ticks, then "Work!", countdown and "Rest!"
+        let t = 0;
+        if (form.tick) { playTick(0, true); playTick(1, false); t = 2; }
+        if (form.phaseBeep) setTimeout(() => beep(1320, 0.14), t * 1000);
+        const g = form.phaseBeep ? 0.16 : 0;
+        [['work', 0], ['5', 1.2], ['4', 2.2], ['3', 3.2], ['2', 4.2], ['1', 5.2], ['rest', 6.2]]
+          .forEach(([name, at]) => playBuffer(name, t + at + g));
+        S = prev;
+        toast(`Audio ${ctx.state} · voice clips ${clipCount(form.voice)}/${CLIPS.length}`, 3500);
       });
     } else {
-      const prev = S;
       S = form;
+      if (form.tick) playTick(0, true);
       speak('Work! 5, 4, 3, 2, 1. Rest!');
       S = prev;
-      report();
+      toast(`Audio ${ctx ? ctx.state : 'unsupported'} · iPhone voice`, 3500);
     }
   });
 
@@ -614,6 +681,7 @@
     const timingChanged = NUM_KEYS.some((k) => next[k] !== S[k]);
     S = next;
     if (master) master.gain.value = S.volume;
+    loadClips(S.voice);
     saveSettings();
     closeSettings();
     if (timingChanged) {

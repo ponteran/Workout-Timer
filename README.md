@@ -4,6 +4,7 @@ An interval timer for a morning PT workout, built as a web app you can install o
 
 - Defaults: **60 s work / 5 s rest × 30 rounds**, plus a 5 s "Get ready". All of these can be changed in ⚙︎ Settings.
 - A female voice says **"Work!"** and **"Rest!"** when each phase starts. It counts down **5‑4‑3‑2‑1** at the end of every work period and says "Workout complete" at the finish.
+- Optional subtle **tick‑tock** every second (⚙︎ → Ticking sound). It stays quiet on seconds that already have a voice cue.
 - Very large fluorescent‑green digits. The top bar is green for WORK, red for REST and amber for GET READY. The footer shows rounds left and what comes next.
 - The layout fits on one screen in landscape on an iPhone, and also works in portrait.
 - Controls: ▶/❚❚ pauses and resumes (tapping the digits does the same). ↻ restarts the workout. While a workout is running, tap ↻ twice so you can't restart by accident.
@@ -18,7 +19,10 @@ An interval timer for a morning PT workout, built as a web app you can install o
 3. Tap **Share → Add to Home Screen**. Opening the app from its icon gives you a full‑screen view with no browser bars, and it keeps working offline.
 4. Open it once, go to ⚙︎ and tap **Test voice**. You should hear "Work! 5, 4, 3, 2, 1, Rest!". A message also shows the audio status, which should read `Audio running · voice clips 14/14`.
 
-The voice cues are short recordings that come with the app (`audio/*.mp3`). They were made with the open-source Kokoro TTS model (Apache-2.0), voice `af_heart`. They play through Web Audio, which works much more reliably on iOS than the browser's speech engine. You can switch to the iPhone's own voices in ⚙︎ → Voice.
+The voice cues are short recordings that come with the app (`audio/<voice>/*.mp3`). They were made with the open-source Kokoro TTS model (Apache-2.0). There are three voices to choose from in ⚙︎ → Voice:
+- **Coach – firm (US)**, the default: Kokoro `af_bella`, pitched down about 2 semitones and compressed so it sounds punchier.
+- **Coach – firm (British)**: `bf_emma`, processed the same way.
+- **Warm (US)**: `af_heart`, the original voice. They play through Web Audio, which works much more reliably on iOS than the browser's speech engine. You can switch to the iPhone's own voices in ⚙︎ → Voice.
 
 ## Tips for reliable audio on iOS
 
