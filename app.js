@@ -12,7 +12,7 @@
     countdown: 5,        // spoken countdown during the last N seconds of work
     countdownMode: 'voice', // voice | beep | both | off
     phaseBeep: true,     // short tone together with "Work!" / "Rest!"
-    voiceURI: '',        // '' = auto-pick a female English voice
+    voice: 'clips',      // 'clips' = built-in recorded female voice, 'auto' = system female voice, or a system voiceURI
     volume: 1,
   };
   const LIMITS = { work: [1, 3600], rest: [0, 3600], rounds: [1, 99], prep: [0, 60], countdown: [0, 10] };
@@ -20,7 +20,8 @@
 
   // Speech engines start talking ~100-300 ms after speak() is called, so audio
   // cues are fired slightly early to land on the second boundary.
-  const AUDIO_LEAD_MS = 150;
+  const LEAD_CLIPS_MS = 40;
+  const LEAD_SPEECH_MS = 150;
   // When the page wakes up late (e.g. after being backgrounded) don't announce
   // a phase that started more than this long ago.
   const STALE_MS = 1500;
@@ -120,6 +121,7 @@
     resetState();
     stopSpeech();
     keepAwake(false);
+    if (keepAlive) keepAlive.pause();
     tick();
   }
 
@@ -127,6 +129,7 @@
     T.acc = total;
     T.status = 'done';
     keepAwake(false);
+    if (keepAlive) setTimeout(() => { if (T.status === 'done') keepAlive.pause(); }, 4000);
   }
 
   function toggle() {
@@ -137,7 +140,8 @@
   function tick() {
     const e = elapsed();
     if (T.status === 'running') {
-      const a = locate(Math.min(total, e + AUDIO_LEAD_MS));
+      const lead = S.voice === 'clips' ? LEAD_CLIPS_MS : LEAD_SPEECH_MS;
+      const a = locate(Math.min(total, e + lead));
       audioCues(a.idx, a.rem, e);
       if (e >= total) finish();
     }
@@ -163,49 +167,98 @@
   }
 
   function cuePhase(idx) {
+    const beepFirst = S.phaseBeep;
+    const gap = beepFirst ? 0.16 : 0; // let the beep finish before the word
     if (idx >= segs.length) {
-      if (S.phaseBeep) { beep(1046, 0.18); setTimeout(() => beep(1318, 0.4), 220); }
-      speak('Workout complete. Great job!');
+      if (beepFirst) { beep(1046, 0.14); setTimeout(() => beep(1318, 0.3), 160); }
+      say('complete', 'Workout complete. Great job!', beepFirst ? 0.5 : 0);
       return;
     }
     const seg = segs[idx];
     if (seg.type === 'work') {
-      if (S.phaseBeep) beep(1320, 0.25);
-      speak('Work!');
+      if (beepFirst) beep(1320, 0.14);
+      say('work', 'Work!', gap);
     } else if (seg.type === 'rest') {
-      if (S.phaseBeep) beep(660, 0.25);
-      speak('Rest!');
+      if (beepFirst) beep(660, 0.14);
+      say('rest', 'Rest!', gap);
     } else {
-      speak('Get ready');
+      say('ready', 'Get ready', 0);
     }
   }
 
   function cueCount(sec) {
     const m = S.countdownMode;
-    if (m === 'beep' || m === 'both') beep(880, 0.12);
-    if (m === 'voice' || m === 'both') speak(String(sec));
+    if (m === 'beep' || m === 'both') beep(880, 0.1);
+    if (m === 'voice' || m === 'both') say(String(sec), String(sec), m === 'both' ? 0.12 : 0);
   }
 
   // ---------------------------------------------------------------- audio
+  // Primary path: short pre-recorded voice clips (audio/*.mp3) decoded into
+  // Web Audio buffers. Once the AudioContext is unlocked by a tap, iOS plays
+  // these reliably (also in Home Screen mode). The browser's speech engine
+  // (speechSynthesis) is only a fallback / optional alternative.
+  const CLIPS = ['work', 'rest', 'ready', 'complete', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
+  const buffers = {};
   let ctx = null;
+  let master = null;
   let speechPrimed = false;
+  let keepAlive = null; // looping silent <audio>: puts iOS in "playback" mode (ignores silent switch)
+
+  function ensureContext() {
+    if (ctx) return ctx;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try {
+      ctx = new AC();
+      master = ctx.createGain();
+      master.gain.value = S.volume;
+      master.connect(ctx.destination);
+      loadClips();
+    } catch (_) { ctx = null; }
+    return ctx;
+  }
+
+  function decode(buf) {
+    return new Promise((resolve, reject) => {
+      // Older Safari only supports the callback form.
+      const p = ctx.decodeAudioData(buf, resolve, reject);
+      if (p && p.then) p.then(resolve, reject);
+    });
+  }
+
+  let clipsLoaded = Promise.resolve();
+  function loadClips() {
+    clipsLoaded = Promise.all(CLIPS.map((name) => buffers[name] ? null :
+      fetch(`audio/${name}.mp3`)
+        .then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+        .then(decode)
+        .then((b) => { buffers[name] = b; })
+        .catch(() => { /* falls back to speechSynthesis */ })));
+  }
 
   function unlockAudio() {
-    // Safari 17+: play through the silent switch like a media app.
+    // Safari 16.4+: behave like a media app (plays with the silent switch on).
     try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) { /* ignore */ }
-    try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!ctx && AC) ctx = new AC();
-      if (ctx) {
-        if (ctx.state !== 'running') ctx.resume();
-        const b = ctx.createBuffer(1, 1, 22050);
-        const src = ctx.createBufferSource();
-        src.buffer = b;
-        src.connect(ctx.destination);
+    if (!keepAlive) {
+      try {
+        keepAlive = new Audio('audio/silence.mp3');
+        keepAlive.loop = true;
+        keepAlive.setAttribute('playsinline', '');
+        keepAlive.volume = 0.01;
+      } catch (_) { keepAlive = null; }
+    }
+    if (keepAlive && keepAlive.paused) keepAlive.play().catch(() => {});
+    const c = ensureContext();
+    if (c) {
+      try {
+        if (c.state !== 'running') c.resume();
+        const src = c.createBufferSource();
+        src.buffer = c.createBuffer(1, 1, 22050);
+        src.connect(c.destination);
         src.start(0);
-      }
-    } catch (_) { /* ignore */ }
-    if (!speechPrimed && 'speechSynthesis' in window) {
+      } catch (_) { /* ignore */ }
+    }
+    if (!speechPrimed && 'speechSynthesis' in window && S.voice !== 'clips') {
       try {
         const u = new SpeechSynthesisUtterance(' ');
         u.volume = 0;
@@ -215,6 +268,31 @@
     }
   }
 
+  // Any touch re-unlocks audio (iOS suspends/interrupts the context after
+  // calls, Siri, locking the screen, switching apps…).
+  document.addEventListener('pointerdown', () => {
+    if (ctx && ctx.state !== 'running') unlockAudio();
+  }, { passive: true });
+
+  function playBuffer(name, delay) {
+    if (!ctx || !buffers[name]) return false;
+    try {
+      if (ctx.state !== 'running') ctx.resume();
+      const src = ctx.createBufferSource();
+      src.buffer = buffers[name];
+      src.connect(master);
+      src.start(ctx.currentTime + (delay || 0));
+      if (window.__wtLog) window.__wtLog(name);
+      return true;
+    } catch (_) { return false; }
+  }
+
+  function say(clip, text, delay) {
+    if (S.voice === 'clips' && playBuffer(clip, delay)) return;
+    if (delay) setTimeout(() => speak(text), delay * 1000);
+    else speak(text);
+  }
+
   function beep(freq, dur) {
     if (!ctx) return;
     try {
@@ -222,20 +300,19 @@
       const t = ctx.currentTime;
       const o = ctx.createOscillator();
       const g = ctx.createGain();
-      const peak = Math.max(0.0002, 0.6 * S.volume);
       o.type = 'sine';
       o.frequency.value = freq;
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(peak, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.5, t + 0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       o.connect(g);
-      g.connect(ctx.destination);
+      g.connect(master);
       o.start(t);
       o.stop(t + dur + 0.03);
     } catch (_) { /* ignore */ }
   }
 
-  // Voice names of common female English voices (iOS/macOS first, then Chrome/Windows).
+  // Female English voices of the system speech engine (fallback path).
   const FEMALE_HINTS = ['samantha', 'ava', 'allison', 'susan', 'zoe', 'karen', 'moira', 'tessa', 'fiona',
     'victoria', 'serena', 'kate', 'nicky', 'martha', 'catherine', 'google us english', 'zira', 'aria',
     'jenny', 'female'];
@@ -253,8 +330,8 @@
     return i === -1 ? 999 : i;
   }
   function pickVoice() {
-    if (S.voiceURI) {
-      const v = voices.find((x) => x.voiceURI === S.voiceURI);
+    if (S.voice !== 'clips' && S.voice !== 'auto') {
+      const v = voices.find((x) => x.voiceURI === S.voice);
       if (v) return v;
     }
     return voices.find((v) => femaleRank(v) < 999) || voices[0] || null;
@@ -263,7 +340,7 @@
   function speak(text) {
     if (!('speechSynthesis' in window)) return;
     try {
-      speechSynthesis.cancel(); // never let cues queue up behind each other
+      if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       const v = pickVoice();
       if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'en-US'; }
@@ -274,7 +351,7 @@
     } catch (_) { /* ignore */ }
   }
   function stopSpeech() {
-    try { if ('speechSynthesis' in window) speechSynthesis.cancel(); } catch (_) { /* ignore */ }
+    try { if ('speechSynthesis' in window && speechSynthesis.speaking) speechSynthesis.cancel(); } catch (_) { /* ignore */ }
   }
 
   if ('speechSynthesis' in window) {
@@ -305,6 +382,7 @@
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       if (T.status === 'running' || T.status === 'paused') keepAwake(true);
+      if (T.status === 'running' && ctx && ctx.state !== 'running') ctx.resume().catch(() => {});
       tick();
     }
   });
@@ -445,7 +523,8 @@
     f('countdownMode').value = src.countdownMode;
     f('phaseBeep').checked = !!src.phaseBeep;
     f('volume').value = src.volume;
-    f('voice').value = src.voiceURI || '';
+    f('voice').value = src.voice || 'clips';
+    if (!f('voice').value) f('voice').value = 'clips';
     updateSummary();
   }
 
@@ -455,7 +534,7 @@
     s.countdownMode = f('countdownMode').value;
     s.phaseBeep = f('phaseBeep').checked;
     s.volume = Math.min(1, Math.max(0.1, Number(f('volume').value) || 1));
-    s.voiceURI = f('voice').value;
+    s.voice = f('voice').value || 'clips';
     return s;
   }
 
@@ -468,10 +547,11 @@
 
   function populateVoiceSelect() {
     const sel = $('f-voice');
-    const current = sel.value || S.voiceURI;
-    sel.innerHTML = '<option value="">Auto (female)</option>' + voices.map((v) =>
+    const current = sel.value || S.voice;
+    sel.innerHTML = '<option value="clips">Built-in female voice (recommended)</option>' +
+      '<option value="auto">iPhone voice – auto female</option>' + voices.map((v) =>
       `<option value="${v.voiceURI.replace(/"/g, '&quot;')}">${v.name.replace(/</g, '&lt;')} (${v.lang})</option>`).join('');
-    sel.value = voices.some((v) => v.voiceURI === current) ? current : '';
+    sel.value = (current === 'clips' || current === 'auto' || voices.some((v) => v.voiceURI === current)) ? current : 'clips';
   }
 
   function openSettings() {
@@ -499,17 +579,41 @@
 
   $('btnTest').addEventListener('click', () => {
     unlockAudio();
-    const prev = S;
-    S = readForm();
-    if (S.phaseBeep) beep(1320, 0.25);
-    speak('Work! 5, 4, 3, 2, 1. Rest!');
-    S = prev;
+    const form = readForm();
+    if (master) master.gain.value = form.volume;
+    const report = () => {
+      const n = CLIPS.filter((c) => buffers[c]).length;
+      toast(`Audio ${ctx ? ctx.state : 'unsupported'} · voice clips ${n}/${CLIPS.length}`, 3500);
+    };
+    if (form.voice === 'clips') {
+      clipsLoaded.then(() => {
+        if (!ctx) return;
+        const t = ctx.currentTime;
+        const seq = [['work', 0], ['5', 1.2], ['4', 2.2], ['3', 3.2], ['2', 4.2], ['1', 5.2], ['rest', 6.2]];
+        if (form.phaseBeep) beep(1320, 0.14);
+        seq.forEach(([name, at]) => {
+          if (!buffers[name]) return;
+          const src = ctx.createBufferSource();
+          src.buffer = buffers[name];
+          src.connect(master);
+          src.start(t + at + (form.phaseBeep ? 0.16 : 0));
+        });
+        report();
+      });
+    } else {
+      const prev = S;
+      S = form;
+      speak('Work! 5, 4, 3, 2, 1. Rest!');
+      S = prev;
+      report();
+    }
   });
 
   $('btnSave').addEventListener('click', () => {
     const next = readForm();
     const timingChanged = NUM_KEYS.some((k) => next[k] !== S[k]);
     S = next;
+    if (master) master.gain.value = S.volume;
     saveSettings();
     closeSettings();
     if (timingChanged) {
@@ -523,6 +627,7 @@
 
   // ---------------------------------------------------------------- boot
   buildSchedule();
+  ensureContext(); // starts suspended; preloads the voice clips
   tick();
   fitClock();
   setInterval(tick, 100);

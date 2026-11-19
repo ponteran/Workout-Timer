@@ -16,15 +16,18 @@ An interval timer for a morning PT workout, built as a web app you can install o
    (GitHub Pages only works on a private repository if you have a paid plan. Otherwise make the repository public, or drag the folder onto Netlify Drop or Cloudflare Pages.)
 2. On the iPhone, open that URL in **Safari**.
 3. Tap **Share → Add to Home Screen**. Opening the app from its icon gives you a full‑screen view with no browser bars, and it keeps working offline.
-4. Open it once, go to ⚙︎ and tap **Test voice**. Then pick a voice if you want a different one. The default is "Samantha", the US female voice on iOS. For a more natural sound, download an *Enhanced/Premium* voice under iOS *Settings → Accessibility → Spoken Content → Voices → English*, then select it in the app.
+4. Open it once, go to ⚙︎ and tap **Test voice**. You should hear "Work! 5, 4, 3, 2, 1, Rest!". A message also shows the audio status, which should read `Audio running · voice clips 14/14`.
+
+The voice cues are short recordings that come with the app (`audio/*.mp3`). They were made with the open-source Kokoro TTS model (Apache-2.0), voice `af_heart`. They play through Web Audio, which works much more reliably on iOS than the browser's speech engine. You can switch to the iPhone's own voices in ⚙︎ → Voice.
 
 ## Tips for reliable audio on iOS
 
 - **Keep the screen on and the app in front.** iOS pauses web apps when the phone locks or when you switch apps. The timer keeps correct time and catches up when you come back, but you won't hear the cues while it's paused. The app asks the screen to stay awake while a workout runs (iOS 16.4+). As a fallback, set *Settings → Display & Brightness → Auto‑Lock → Never* during workouts.
-- **Tap ▶ to start.** iOS only allows sound after a tap, and the first tap turns the audio on.
+- **Tap ▶ to start.** iOS only allows sound after a tap, and the first tap turns the audio on. If iOS cuts the sound off (for example after a phone call or Siri), any tap on the screen turns it back on.
+- **After an update**, close the app fully (swipe it away) and open it again. If you still get the old version, delete the Home Screen icon and add it again.
 - **Silent switch / Focus modes.** On iOS 17+ the app asks to play like a media app, so the beeps should come through even when the phone is on silent. If you don't hear cues, flip the ring/silent switch off and turn up the **media** volume.
 - If your music is playing, the voice cues will briefly play over it.
 
 ## Files
 
-`index.html`, `style.css`, `app.js` (all logic), `sw.js` (offline cache), `manifest.webmanifest`, `icons/`, `fonts/` (Bebas Neue, OFL). There's no build step. To run it locally: `python3 -m http.server`, then open http://localhost:8000.
+`index.html`, `style.css`, `app.js` (all logic), `sw.js` (offline cache), `manifest.webmanifest`, `icons/`, `fonts/` (Bebas Neue, OFL), `audio/` (voice clips). There's no build step. To run it locally: `python3 -m http.server`, then open http://localhost:8000.
