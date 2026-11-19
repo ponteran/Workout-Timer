@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Workout Timer</title>
+  <meta name="description" content="Interval timer for work/rest rounds with voice cues.">
+  <meta name="theme-color" content="#0b0d0b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PT Timer">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preload" href="fonts/BebasNeue-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app" class="phase-prep status-idle">
+    <header class="bar">
+      <div class="bar-left">
+        <button id="btnReset" class="icon-btn" aria-label="Restart workout">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V1.5L7 6.25 12 11V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+        </button>
+        <div class="meta">
+          <div><span class="meta-k">ROUND</span> <span id="roundNow">1/30</span></div>
+          <div><span class="meta-k">TOTAL</span> <span id="totalLeft">00:00</span></div>
+        </div>
+      </div>
+      <div id="phaseLabel" class="phase-label">WORK</div>
+      <div class="bar-right">
+        <button id="btnSettings" class="icon-btn" aria-label="Settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg>
+        </button>
+        <button id="btnPlay" class="icon-btn play-btn" aria-label="Start / pause">
+          <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="clockArea" class="clock-area" aria-live="off">
+      <div id="clock" class="clock">01:00</div>
+      <div id="badge" class="badge">TAP TO START</div>
+    </main>
+
+    <div class="progress"><div id="progressFill" class="progress-fill"></div></div>
+
+    <footer class="foot">
+      <div class="rounds-left">
+        <span id="roundsLeft" class="big-num">30</span>
+        <span class="lbl">ROUNDS<br>LEFT</span>
+      </div>
+      <button id="btnPlayBig" class="play-big" aria-label="Start / pause">
+        <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      </button>
+      <div id="nextBox" class="next">
+        <span class="lbl">NEXT</span>
+        <span id="nextLabel" class="next-label">REST</span>
+        <span id="nextTime" class="next-time">00:05</span>
+      </div>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <div id="settings" class="sheet" hidden>
+    <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="sheet-head">
+        <h2 id="settingsTitle">Settings</h2>
+        <div class="actions">
+          <button id="btnTest" class="text-btn">Test voice</button>
+          <button id="btnDefaults" class="text-btn">Defaults</button>
+          <button id="btnSave" class="primary">Save</button>
+          <button id="btnClose" class="text-btn" aria-label="Close settings">✕</button>
+        </div>
+      </div>
+      <div class="form">
+        <div class="row" data-key="work">
+          <label for="f-work">Work <small>sec</small></label>
+          <div class="stepper"><button type="button" data-d="-5">−</button><input id="f-work" type="number" inputmode="numeric" min="1" max="3600"><button type="button" data-d="5">+</button></div>
+        </div>
+        <div class="row" data-key="rest">
+          <label for="f-rest">Rest <small>sec</small></label>
+          <div class="stepper"><button type="button" data-d="-1">−</button><input id="f-rest" type="number" inputmode="numeric" min="0" max="3600"><button type="button" data-d="1">+</button></div>
+        </div>
+        <div class="row" data-key="rounds">
+          <label for="f-rounds">Rounds</label>
+          <div class="stepper"><button type="button" data-d="-1">−</button><input id="f-rounds" type="number" inputmode="numeric" min="1" max="99"><button type="button" data-d="1">+</button></div>
+        </div>
+        <div class="row" data-key="prep">
+          <label for="f-prep">Get ready <small>sec</small></label>
+          <div class="stepper"><button type="button" data-d="-1">−</button><input id="f-prep" type="number" inputmode="numeric" min="0" max="60"><button type="button" data-d="1">+</button></div>
+        </div>
+        <div class="row" data-key="countdown">
+          <label for="f-countdown">Countdown <small>last sec</small></label>
+          <div class="stepper"><button type="button" data-d="-1">−</button><input id="f-countdown" type="number" inputmode="numeric" min="0" max="10"><button type="button" data-d="1">+</button></div>
+        </div>
+        <div class="row">
+          <label for="f-countdownMode">Countdown sound</label>
+          <select id="f-countdownMode">
+            <option value="voice">Voice (5, 4, 3…)</option>
+            <option value="beep">Beeps</option>
+            <option value="both">Voice + beeps</option>
+            <option value="off">Off</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="f-phaseBeep">Beep on Work / Rest</label>
+          <input id="f-phaseBeep" type="checkbox" class="switch">
+        </div>
+        <div class="row">
+          <label for="f-voice">Voice</label>
+          <select id="f-voice"><option value="">Auto (female)</option></select>
+        </div>
+        <div class="row">
+          <label for="f-volume">Volume</label>
+          <input id="f-volume" type="range" min="0.1" max="1" step="0.1">
+        </div>
+      </div>
+      <p id="summary" class="summary"></p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
