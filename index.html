@@ -49,6 +49,7 @@
     <main id="clockArea" class="clock-area" aria-live="off">
       <div id="clock" class="clock">01:00</div>
       <div id="badge" class="badge">TAP TO START</div>
+      <button id="soundBanner" class="sound-banner" hidden>🔇 Sound interrupted — tap to restore</button>
     </main>
 
     <div class="progress"><div id="progressFill" class="progress-fill"></div></div>
@@ -130,6 +131,13 @@
           <input id="f-tick" type="checkbox" class="switch">
         </div>
         <div class="row">
+          <label for="f-audioMode">With other apps' audio</label>
+          <select id="f-audioMode">
+            <option value="exclusive">Take over (works in silent mode)</option>
+            <option value="mix">Play over music / podcasts</option>
+          </select>
+        </div>
+        <div class="row">
           <label for="f-voice">Voice</label>
           <select id="f-voice"><option value="coach">Coach – firm (US)</option><option value="coach-uk">Coach – firm (British)</option><option value="warm">Warm (US)</option></select>
         </div>
@@ -141,7 +149,7 @@
       <p id="summary" class="summary"></p>
       <details class="routine-edit">
         <summary>Edit exercise list</summary>
-        <p class="hint">One exercise per line: <code>minutes | position | exercise</code>, optionally followed by <code>| relax 10, extend 30</code> to split it into repeating timed parts, each with its own cue. "minutes" is how many work periods it lasts (2 = one 2‑minute block). Exercises from your PT list have a recorded voice. New or renamed ones are read by the iPhone voice.</p>
+        <p class="hint">One exercise per line: <code>length | position | exercise</code>. The length is in work periods (<code>1</code>, <code>2</code>) or in seconds (<code>40s</code>). Optional last column: <code>relax 10, extend 30</code> splits the exercise into repeating timed parts with their own cues, and <code>rest before 10</code> sets the rest before that exercise. Exercises from your PT list have a recorded voice. New or renamed ones are read by the iPhone voice.</p>
         <textarea id="f-routine" rows="10" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
         <div class="actions"><button id="btnRoutineDefault" class="text-btn" type="button">Reset to PT list</button></div>
       </details>

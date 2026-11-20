@@ -5,10 +5,12 @@ An interval timer for a morning PT workout, built as a web app you can install o
 - Defaults: **60 s work / 5 s rest × 30 rounds**, plus a 5 s "Get ready". All of these can be changed in ⚙︎ Settings.
 - A female voice says **"Work!"** and **"Rest!"** when each phase starts. It counts down **5‑4‑3‑2‑1** at the end of every work period and says "Workout complete" at the finish.
 - **Exercise list (morning PT):** each line of the list is one round. The screen shows the current exercise and its position (Supine, Seated, …). During rests it shows **UP NEXT** (or **NEW POSITION**), and the voice says *"Rest! Next: glute bridge, left."* so you know what to set up.
-  - **Longer rest on position changes:** the rest is 10 s (instead of 5 s) when the next exercise is in a different position, and the voice names the new position: *"Rest! Next: prone. Straight leg raise prone, left."* There are 8 position changes in the default list. You can change both rest times in ⚙︎.
+  - **Position changes:** when the next exercise is in a different position, the voice names it (*"Rest! Next: prone. Straight leg raise prone, left."*) and the screen shows **NEW POSITION**. The rest before it is 5 s by default; you can change that in ⚙︎ → *Rest on position change*.
+  - **Per-exercise rest:** add `| rest before 10` to a line to give that one exercise its own rest. In the default list, Couch stretch LEFT gets 10 s.
+  - **Length in seconds:** write e.g. `40s` instead of `1` in the first column. Bird dog, Cat-cow and World's greatest stretch are 40 s each (2 minutes together).
   - **Interval exercises:** if you add `| relax 10, extend 30` to a line, that exercise is split into repeating timed parts, each with its own voice cue ("Relax." / "Extend!"), colour, clock and 3‑2‑1 countdown, plus a CYCLE x/y counter. The Hamstring PNF (2 min) runs as 3 × (10 s relax + 30 s extend).
-  - With the default list the whole workout takes **29:50**: 26 exercises adding up to 27 minutes of work, plus the rests and the 5‑second get‑ready.
-  - You can edit the list in ⚙︎ → *Edit exercise list* (one line per exercise: `minutes | position | exercise [| intervals]`), or switch it off to go back to plain rounds. Recorded interval cues: relax, extend, hold, contract, push, switch, breathe, rest. Any other word is read by the iPhone voice.
+  - With the default list the whole workout takes **28:15**: 26 exercises adding up to 26 minutes of work, plus the rests and the 5‑second get‑ready.
+  - You can edit the list in ⚙︎ → *Edit exercise list* (one line per exercise: `length | position | exercise [| options]`), or switch it off to go back to plain rounds. Recorded interval cues: relax, extend, hold, contract, push, switch, breathe, rest. Any other word is read by the iPhone voice.
 - Optional subtle **tick‑tock** every second (⚙︎ → Ticking sound). It stays quiet on seconds that already have a voice cue.
 - Very large fluorescent‑green digits. The top bar is green for WORK, red for REST and amber for GET READY. The footer shows rounds left and what comes next.
 - The layout fits on one screen in landscape on an iPhone, and also works in portrait.
@@ -35,7 +37,9 @@ The voice cues are short recordings that come with the app (`audio/<voice>/*.mp3
 - **Tap ▶ to start.** iOS only allows sound after a tap, and the first tap turns the audio on. If iOS cuts the sound off (for example after a phone call or Siri), any tap on the screen turns it back on.
 - **After an update**, close the app fully (swipe it away) and open it again. If you still get the old version, delete the Home Screen icon and add it again.
 - **Silent switch / Focus modes.** On iOS 17+ the app asks to play like a media app, so the beeps should come through even when the phone is on silent. If you don't hear cues, flip the ring/silent switch off and turn up the **media** volume.
-- If your music is playing, the voice cues will briefly play over it.
+- **Other apps' audio** (⚙︎ → *With other apps' audio*):
+  - *Take over* (default): works in silent mode. If another app starts playing, iOS cuts off the timer's sound. The app tries to get it back by itself; if iOS needs a tap, a yellow **"Sound interrupted — tap to restore"** banner appears. Tapping it, or anywhere else on the screen, brings the sound back without pausing the workout.
+  - *Play over music / podcasts*: the cues mix with whatever else is playing, and other apps don't cut them off. In this mode **the silent switch mutes the app**, so keep the ringer on.
 
 ## Files
 

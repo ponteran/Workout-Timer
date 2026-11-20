@@ -6,10 +6,11 @@
 (function (root) {
   'use strict';
 
-  // One exercise per line:  minutes | position | exercise [| intervals]
-  // "minutes" = how many work periods the exercise lasts (2 = one 2-min block).
-  // Optional "intervals" splits the exercise into repeating timed parts,
-  // e.g. "relax 10, extend 30" = 10 s relax + 30 s extend, repeated.
+  // One exercise per line:  length | position | exercise [| options]
+  // "length" = work periods (1, 2 = one 2-min block) or seconds ("40s").
+  // Options (last column, comma separated, all optional):
+  //   "relax 10, extend 30"  split into repeating timed parts with own cues
+  //   "rest before 10"       rest before this exercise (overrides the default)
   const DEFAULT_TEXT = [
     '1 | Supine | Knee extension, roller under BOTH knees',
     '1 | Supine | Knee flexion gapping, towel, BOTH knees',
@@ -26,12 +27,12 @@
     '1 | Prone | SLR prone LEFT',
     '1 | Prone | SLR prone RIGHT',
     '1 | Prone | Plank, alternating leg lift',
-    '1 | Quadruped | Bird dog',
-    '1 | Quadruped | Cat-cow',
-    "1 | Standing | World's greatest stretch",
+    '40s | Quadruped | Bird dog',
+    '40s | Quadruped | Cat-cow',
+    "40s | Standing | World's greatest stretch",
     '1 | Kneeling | Pigeon LEFT',
     '1 | Kneeling | Pigeon RIGHT',
-    '1 | Kneeling | Couch stretch LEFT',
+    '1 | Kneeling | Couch stretch LEFT | rest before 10',
     '1 | Kneeling | Couch stretch RIGHT',
     '1 | Standing | Foam stance, eyes open LEFT',
     '1 | Standing | Foam stance, eyes open RIGHT',
@@ -48,18 +49,24 @@
       if (!line || line.startsWith('#')) return;
       let parts = line.split(/\s*[|\t]\s*/).map((p) => p.trim()).filter(Boolean);
       let min = 1;
-      if (parts.length > 1 && /^\d+(\.\d+)?$/.test(parts[0])) {
-        min = Math.min(20, Math.max(0.25, Number(parts[0])));
+      let sec = 0; // fixed length in seconds ("40s"); 0 = use min × work time
+      if (parts.length > 1 && /^\d+(\.\d+)?\s*(s|sec|secs)?$/i.test(parts[0])) {
+        if (/[a-z]/i.test(parts[0])) sec = Math.min(3600, Math.max(1, Math.round(parseFloat(parts[0]))));
+        else min = Math.min(20, Math.max(0.25, Number(parts[0])));
         parts = parts.slice(1);
       }
       let steps = [];
+      let restBefore = null;
       if (parts.length > 2) {
-        steps = parseSteps(parts[parts.length - 1]);
-        if (steps.length) parts = parts.slice(0, -1);
+        let opts = parts[parts.length - 1];
+        const rb = opts.match(/\brest\s+before\s*[:=]?\s*(\d+)\s*(?:s|sec|secs|seconds)?\b/i);
+        if (rb) { restBefore = Math.min(3600, Number(rb[1])); opts = opts.replace(rb[0], ''); }
+        steps = parseSteps(opts);
+        if (rb || steps.length) parts = parts.slice(0, -1);
       }
       const name = parts.length > 1 ? parts.slice(1).join(' ') : parts[0];
       const position = parts.length > 1 ? parts[0] : '';
-      if (name) items.push({ min, position, name, steps });
+      if (name) items.push({ min, sec, position, name, steps, restBefore });
     });
     return items;
   }
