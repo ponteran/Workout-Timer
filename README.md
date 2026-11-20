@@ -38,7 +38,7 @@ The voice cues are short recordings that come with the app (`audio/<voice>/*.mp3
 - **After an update**, close the app fully (swipe it away) and open it again. If you still get the old version, delete the Home Screen icon and add it again.
 - **Silent switch / Focus modes.** On iOS 17+ the app asks to play like a media app, so the beeps should come through even when the phone is on silent. If you don't hear cues, flip the ring/silent switch off and turn up the **media** volume.
 - **Other apps' audio** (⚙︎ → *With other apps' audio*):
-  - *Take over* (default): works in silent mode. If another app starts playing, iOS cuts off the timer's sound. The app tries to get it back by itself; if iOS needs a tap, a yellow **"Sound interrupted — tap to restore"** banner appears. Tapping it, or anywhere else on the screen, brings the sound back without pausing the workout.
+  - *Take over* (default): works in silent mode. If another app starts playing, iOS cuts off the timer's sound. The app tries to get it back by itself; if iOS needs a tap, a yellow **"Sound interrupted — tap to restore"** banner appears. Tapping it, or anywhere else on the screen, brings the sound back without pausing the workout. The tap that restores the sound never pauses the timer.
   - *Play over music / podcasts*: the cues mix with whatever else is playing, and other apps don't cut them off. In this mode **the silent switch mutes the app**, so keep the ringer on.
 
 ## Files

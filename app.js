@@ -526,11 +526,23 @@
 
   // Any touch re-unlocks audio (iOS suspends/interrupts the context after
   // calls, Siri, locking the screen, switching apps…).
+  // A tap that restores sound must not also pause the workout. On iOS the
+  // "click" arrives when the finger lifts – after the banner has already
+  // disappeared – so it would land on the clock underneath (tap = pause).
+  // The restoring tap's click is therefore swallowed.
+  let swallowTapUntil = 0;
+  const tapSwallowed = () => Date.now() < swallowTapUntil;
+
   document.addEventListener('pointerdown', () => {
     if (!ctx) return;
-    if (workoutActive() && audioBad()) restoreAudio();
-    else if (ctx.state !== 'running') unlockAudio();
-  }, { passive: true });
+    if (workoutActive() && audioBad()) {
+      restoreAudio();
+      swallowTapUntil = Date.now() + 1000;
+      toast('Sound restored', 1200);
+    } else if (ctx.state !== 'running') {
+      unlockAudio();
+    }
+  }, { passive: true, capture: true });
 
   const activeVoice = new Set();
   let voiceBusyUntil = 0; // audio-clock time when the current announcement ends
@@ -867,13 +879,15 @@
 
   $('soundBanner').addEventListener('click', (ev) => {
     ev.stopPropagation(); // don't pause the workout
-    restoreAudio();
-    toast('Sound restored', 1200);
+    if (audioBad()) { restoreAudio(); toast('Sound restored', 1200); }
   });
 
   $('btnPlay').addEventListener('click', toggle);
   $('btnPlayBig').addEventListener('click', toggle);
-  el.clockArea.addEventListener('click', toggle);
+  el.clockArea.addEventListener('click', () => {
+    if (tapSwallowed()) return; // this tap was used to restore sound
+    toggle();
+  });
   btnReset.addEventListener('click', onReset);
   $('btnSettings').addEventListener('click', openSettings);
 
