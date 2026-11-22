@@ -11,6 +11,7 @@
   // Options (last column, comma separated, all optional):
   //   "relax 10, extend 30"  split into repeating timed parts with own cues
   //   "rest before 10"       rest before this exercise (overrides the default)
+  //   "switch"               say "Switch!" halfway (change sides)
   const DEFAULT_TEXT = [
     '1 | Supine | Knee extension, roller under BOTH knees',
     '1 | Supine | Knee flexion gapping, towel, BOTH knees',
@@ -26,10 +27,10 @@
     '1 | Side-lying | Side plank RIGHT',
     '1 | Prone | SLR prone LEFT',
     '1 | Prone | SLR prone RIGHT',
-    '1 | Prone | Plank, alternating leg lift',
-    '40s | Quadruped | Bird dog',
+    '1 | Prone | Plank, alternating leg lift | switch',
+    '40s | Quadruped | Bird dog | switch',
     '40s | Quadruped | Cat-cow',
-    "40s | Standing | World's greatest stretch",
+    "40s | Standing | World's greatest stretch | switch",
     '1 | Kneeling | Pigeon LEFT',
     '1 | Kneeling | Pigeon RIGHT',
     '1 | Kneeling | Couch stretch LEFT | rest before 10',
@@ -57,16 +58,19 @@
       }
       let steps = [];
       let restBefore = null;
+      let sides = false;
       if (parts.length > 2) {
         let opts = parts[parts.length - 1];
         const rb = opts.match(/\brest\s+before\s*[:=]?\s*(\d+)\s*(?:s|sec|secs|seconds)?\b/i);
         if (rb) { restBefore = Math.min(3600, Number(rb[1])); opts = opts.replace(rb[0], ''); }
+        const sw = /(^|,)\s*switch(\s+sides?)?\s*(?=,|$)/i;
+        if (sw.test(opts)) { sides = true; opts = opts.replace(sw, '$1'); }
         steps = parseSteps(opts);
-        if (rb || steps.length) parts = parts.slice(0, -1);
+        if (rb || sides || steps.length) parts = parts.slice(0, -1);
       }
       const name = parts.length > 1 ? parts.slice(1).join(' ') : parts[0];
       const position = parts.length > 1 ? parts[0] : '';
-      if (name) items.push({ min, sec, position, name, steps, restBefore });
+      if (name) items.push({ min, sec, position, name, steps, restBefore, sides: sides && !steps.length });
     });
     return items;
   }

@@ -17,7 +17,7 @@
     tick: true,          // subtle clock tick every second
     useRoutine: true,    // follow the exercise list (one exercise per round)
     routineText: (window.Routine && Routine.DEFAULT_TEXT) || '',
-    rv: 3,               // settings revision (for migrations)
+    rv: 4,               // settings revision (for migrations)
     audioMode: 'exclusive', // 'exclusive' = media app (plays in silent mode) | 'mix' = plays over other apps' audio
     volume: 1,
   };
@@ -60,6 +60,13 @@
           .replace(/^\s*1(\s*\|\s*Standing\s*\|\s*World's greatest stretch)\s*$/m, '40s$1')
           .replace(/^(\s*1\s*\|\s*Kneeling\s*\|\s*Couch stretch LEFT)\s*$/m, '$1 | rest before 10');
       }
+    }
+    if ((saved.rv || 1) < 4 && typeof s.routineText === 'string') {
+      // rev 4: "Switch!" halfway through plank / bird dog / world's greatest stretch
+      s.routineText = s.routineText
+        .replace(/^(\s*\S+\s*\|\s*Prone\s*\|\s*Plank, alternating leg lift)\s*$/m, '$1 | switch')
+        .replace(/^(\s*\S+\s*\|\s*Quadruped\s*\|\s*Bird dog)\s*$/m, '$1 | switch')
+        .replace(/^(\s*\S+\s*\|\s*Standing\s*\|\s*World's greatest stretch)\s*$/m, '$1 | switch');
     }
     if (s.audioMode !== 'mix') s.audioMode = 'exclusive';
     s.rv = DEFAULTS.rv;
@@ -115,6 +122,11 @@
           add('work', d, r, ex, { sub: { label: st.label, step: i, cycle, cycles }, last: left <= 0 });
           if (++i >= ex.steps.length) { i = 0; cycle++; }
         }
+      } else if (ex && ex.sides && workSec >= 2) {
+        // "switch": two halves, "Switch!" at the midpoint
+        const half = Math.floor(workSec / 2);
+        add('work', half, r, ex, { sub: { label: 'work', side: 1 }, last: false });
+        add('work', workSec - half, r, ex, { sub: { label: 'switch', side: 2 } });
       } else {
         add('work', workSec, r, ex);
       }
@@ -258,7 +270,11 @@
       return;
     }
     const seg = segs[idx];
-    if (seg.type === 'work' && seg.sub) {
+    if (seg.type === 'work' && seg.sub && seg.sub.side === 2) {
+      // Halfway through a two-sided exercise
+      if (beepFirst) beep(1320, 0.14);
+      say(cueClip('switch'), 'Switch!', gap);
+    } else if (seg.type === 'work' && seg.sub && !seg.sub.side) {
       // Interval inside an exercise, e.g. "Relax." / "Extend!"
       if (beepFirst) beep(seg.sub.step % 2 ? 1320 : 990, 0.14);
       say(cueClip(seg.sub.label), `${seg.sub.label}!`, gap);
@@ -373,6 +389,7 @@
     items.forEach((ex) => {
       if (ex.position) extra.add(posPart(ex)[0]);
       (ex.steps || []).forEach((st) => extra.add(cueClip(st.label)));
+      if (ex.sides) extra.add(cueClip('switch'));
     });
     const more = Promise.all([...extra].map((n) => loadClip(set, n)));
     return Promise.all([base, names, more]);
@@ -754,7 +771,11 @@
   const LABEL = { prep: 'GET READY', work: 'WORK', rest: 'REST', done: 'DONE' };
   const COLOR = { prep: 'var(--prep)', work: 'var(--work)', rest: 'var(--rest)', done: 'var(--done)' };
   const last = {};
-  const segLabel = (seg) => (!seg ? LABEL.done : seg.sub ? seg.sub.label.toUpperCase() : LABEL[seg.type]);
+  const segLabel = (seg, header) => {
+    if (!seg) return LABEL.done;
+    if (seg.sub && seg.sub.side) return header ? LABEL.work : seg.sub.side === 2 ? 'SWITCH' : LABEL.work;
+    return seg.sub ? seg.sub.label.toUpperCase() : LABEL[seg.type];
+  };
 
   function set(key, node, prop, value) {
     if (last[key] === value) return false;
@@ -778,14 +799,14 @@
       `phase-${type}`,
       `status-${T.status}`,
       T.status === 'running' && type === 'work' && sec <= countLimit(seg) ? 'final' : '',
-      seg && seg.sub ? `sub-${seg.sub.step % 2}` : '',
+      seg && seg.sub && !seg.sub.side ? `sub-${seg.sub.step % 2}` : '',
       routine.length ? 'has-routine' : '',
     ].join(' ').trim());
 
     if (routine.length) {
       const ex = seg && seg.ex;
       let tag = '';
-      if (seg && type === 'work') tag = seg.sub ? `CYCLE ${seg.sub.cycle}/${seg.sub.cycles}` : '';
+      if (seg && type === 'work') tag = !seg.sub ? '' : seg.sub.side ? `SIDE ${seg.sub.side}/2` : `CYCLE ${seg.sub.cycle}/${seg.sub.cycles}`;
       else if (seg) tag = type === 'prep' ? 'FIRST UP' : seg.change ? 'NEW POSITION' : 'UP NEXT';
       set('exTag', el.exTag, 'textContent', tag);
       set('exPos', el.exPos, 'textContent', ex ? ex.position.toUpperCase() : '');
@@ -795,7 +816,7 @@
     if (set('clock', el.clock, 'innerHTML', clockHTML(clockStr))) {
       if (last.clockLen !== clockStr.length) { last.clockLen = clockStr.length; fitClock(); }
     }
-    set('phase', el.phase, 'textContent', segLabel(seg));
+    set('phase', el.phase, 'textContent', segLabel(seg, true));
 
     const workDone = segs.filter((s) => s.type === 'work' && s.last && s.start + s.dur <= e).length;
     const n = roundCount();
@@ -809,7 +830,7 @@
     const nType = next ? next.type : 'done';
     set('nlabel', el.nextLabel, 'textContent', next ? segLabel(next) : (seg ? 'FINISH' : '—'));
     set('ntime', el.nextTime, 'textContent', next ? fmt(next.dur / 1000) : '');
-    const nColor = next && next.sub && next.sub.step % 2 === 0 ? 'var(--sub)' : COLOR[nType];
+    const nColor = next && next.sub && !next.sub.side && next.sub.step % 2 === 0 ? 'var(--sub)' : COLOR[nType];
     if (last.ncolor !== nColor) { last.ncolor = nColor; el.nextLabel.style.color = nColor; }
 
     const frac = seg ? 1 - rem / seg.dur : 1;
