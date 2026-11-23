@@ -17,7 +17,7 @@
     tick: true,          // subtle clock tick every second
     useRoutine: true,    // follow the exercise list (one exercise per round)
     routineText: (window.Routine && Routine.DEFAULT_TEXT) || '',
-    rv: 4,               // settings revision (for migrations)
+    rv: 5,               // settings revision (for migrations)
     audioMode: 'exclusive', // 'exclusive' = media app (plays in silent mode) | 'mix' = plays over other apps' audio
     volume: 1,
   };
@@ -67,6 +67,16 @@
         .replace(/^(\s*\S+\s*\|\s*Prone\s*\|\s*Plank, alternating leg lift)\s*$/m, '$1 | switch')
         .replace(/^(\s*\S+\s*\|\s*Quadruped\s*\|\s*Bird dog)\s*$/m, '$1 | switch')
         .replace(/^(\s*\S+\s*\|\s*Standing\s*\|\s*World's greatest stretch)\s*$/m, '$1 | switch');
+    }
+    if ((saved.rv || 1) < 5 && typeof s.routineText === 'string') {
+      // rev 5 (video review): PNF gets its contract phase, no "Switch!" on the
+      // alternating plank, WGS is done from all fours, 15 s to get onto the foam.
+      s.routineText = s.routineText
+        .replace(/^(\s*2\s*\|\s*Supine\s*\|\s*Hamstring PNF — BILATERAL 3 cycles\s*\|\s*)relax 10, extend 30\s*$/m,
+          '$1contract 6, relax 4, extend 30')
+        .replace(/^(\s*\S+\s*\|\s*Prone\s*\|\s*Plank, alternating leg lift)\s*\|\s*switch\s*$/m, '$1')
+        .replace(/^(\s*\S+\s*\|\s*)Standing(\s*\|\s*World's greatest stretch\b)/m, '$1Quadruped$2')
+        .replace(/^(\s*\S+\s*\|\s*Standing\s*\|\s*Foam stance, eyes open LEFT)\s*$/m, '$1 | rest before 15');
     }
     if (s.audioMode !== 'mix') s.audioMode = 'exclusive';
     s.rv = DEFAULTS.rv;
@@ -151,7 +161,12 @@
   function countLimit(seg) {
     if (!seg) return 0;
     if (seg.type === 'prep') return Math.min(3, S.countdown);
-    if (seg.type === 'work') return seg.last ? S.countdown : Math.min(3, S.countdown);
+    if (seg.type === 'work') {
+      if (seg.last) return S.countdown;
+      // Short interval parts (e.g. a 4 s "relax") stay quiet: a 3-2-1 would
+      // talk over their own cue.
+      return seg.dur >= 6000 ? Math.min(3, S.countdown) : 0;
+    }
     return 0;
   }
 
