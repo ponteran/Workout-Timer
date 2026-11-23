@@ -9,13 +9,13 @@
   // One exercise per line:  length | position | exercise [| options]
   // "length" = work periods (1, 2 = one 2-min block) or seconds ("40s").
   // Options (last column, comma separated, all optional):
-  //   "relax 10, extend 30"  split into repeating timed parts with own cues
+  //   "contract 6, relax 4, extend 30"  split into repeating timed parts with own cues
   //   "rest before 10"       rest before this exercise (overrides the default)
   //   "switch"               say "Switch!" halfway (change sides)
   const DEFAULT_TEXT = [
     '1 | Supine | Knee extension, roller under BOTH knees',
     '1 | Supine | Knee flexion gapping, towel, BOTH knees',
-    '2 | Supine | Hamstring PNF — BILATERAL 3 cycles | relax 10, extend 30',
+    '2 | Supine | Hamstring PNF — BILATERAL 3 cycles | contract 6, relax 4, extend 30',
     '1 | Supine | Hollow body hold',
     '1 | Seated | End-range knee ext., roller under BOTH heels',
     '1 | Seated | 90-90 hip switches - 2x10 / side',
@@ -27,15 +27,15 @@
     '1 | Side-lying | Side plank RIGHT',
     '1 | Prone | SLR prone LEFT',
     '1 | Prone | SLR prone RIGHT',
-    '1 | Prone | Plank, alternating leg lift | switch',
+    '1 | Prone | Plank, alternating leg lift',
     '40s | Quadruped | Bird dog | switch',
     '40s | Quadruped | Cat-cow',
-    "40s | Standing | World's greatest stretch | switch",
+    "40s | Quadruped | World's greatest stretch | switch",
     '1 | Kneeling | Pigeon LEFT',
     '1 | Kneeling | Pigeon RIGHT',
     '1 | Kneeling | Couch stretch LEFT | rest before 10',
     '1 | Kneeling | Couch stretch RIGHT',
-    '1 | Standing | Foam stance, eyes open LEFT',
+    '1 | Standing | Foam stance, eyes open LEFT | rest before 15',
     '1 | Standing | Foam stance, eyes open RIGHT',
     '1 | Standing | Stance eyes closed LEFT',
     '1 | Standing | Stance eyes closed RIGHT',

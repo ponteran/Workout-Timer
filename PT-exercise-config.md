@@ -8,16 +8,16 @@ Exported from the Workout Timer app (repo `ponteran/Workout-Timer`, file `routin
 |---|---|
 | Exercises | 26 |
 | Total work time | 26:00 |
-| Total rest/transition time | 02:10 (25 rests) |
+| Total rest/transition time | 02:20 (25 rests) |
 | Get-ready before exercise 1 | 5 s |
-| **Total session length** | **28:15** |
+| **Total session length** | **28:25** |
 
 ## Timing rules (app settings)
 
 - **Work length:** "1" = 60 s, "2" = 120 s. Values written as `40s` are fixed seconds.
 - **Rest between exercises:** 5 s, also 5 s on a position change. The exception is lines marked `rest before N`.
 - **No rest after the last exercise.**
-- **Countdown:** spoken 5‑4‑3‑2‑1 at the end of each exercise. Inside split exercises (intervals, switch) it's 3‑2‑1 before each change.
+- **Countdown:** spoken 5‑4‑3‑2‑1 at the end of each exercise. Inside split exercises (intervals, switch) it's 3‑2‑1 before each change, except after parts shorter than 6 s (the 4 s PNF relax), which stay quiet.
 
 ## Voice cues
 
@@ -26,7 +26,7 @@ Exported from the Workout Timer app (repo `ponteran/Workout-Timer`, file `routin
 | Start | "Get ready. First up: [exercise]." |
 | Start of each exercise | Beep, then "Work!" |
 | Each rest | "Rest! Next: [exercise]." On a position change: "Rest! Next: [position]. [exercise]." |
-| Hamstring PNF | "Relax." / "Extend!" at each part |
+| Hamstring PNF | "Contract!" / "Relax!" / "Extend!" at each part |
 | Halfway on `switch` exercises | "Switch!" |
 | End | "Workout complete. Great job!" |
 
@@ -38,7 +38,7 @@ Times are measured from pressing Start.
 |---|---|---|---|---|---|---|---|
 | 1 | 00:05 | 01:05 | 60 s | 5 s (get ready) | Supine | Knee extension, roller under BOTH knees | — |
 | 2 | 01:10 | 02:10 | 60 s | 5 s | Supine | Knee flexion gapping, towel, BOTH knees | — |
-| 3 | 02:15 | 04:15 | 120 s | 5 s | Supine | Hamstring PNF — BILATERAL 3 cycles | 3 × (relax 10 s + extend 30 s); cue at each part |
+| 3 | 02:15 | 04:15 | 120 s | 5 s | Supine | Hamstring PNF — BILATERAL 3 cycles | 3 × (contract 6 s + relax 4 s + extend 30 s); cue at each part |
 | 4 | 04:20 | 05:20 | 60 s | 5 s | Supine | Hollow body hold | — |
 | 5 | 05:25 | 06:25 | 60 s | 5 s (position change) | Seated | End-range knee ext., roller under BOTH heels | — |
 | 6 | 06:30 | 07:30 | 60 s | 5 s | Seated | 90-90 hip switches - 2x10 / side | — |
@@ -50,27 +50,27 @@ Times are measured from pressing Start.
 | 12 | 13:00 | 14:00 | 60 s | 5 s | Side-lying | Side plank RIGHT | — |
 | 13 | 14:05 | 15:05 | 60 s | 5 s (position change) | Prone | SLR prone LEFT | — |
 | 14 | 15:10 | 16:10 | 60 s | 5 s | Prone | SLR prone RIGHT | — |
-| 15 | 16:15 | 17:15 | 60 s | 5 s | Prone | Plank, alternating leg lift | "Switch!" at 30 s (30 s + 30 s) |
+| 15 | 16:15 | 17:15 | 60 s | 5 s | Prone | Plank, alternating leg lift | — |
 | 16 | 17:20 | 18:00 | 40 s | 5 s (position change) | Quadruped | Bird dog | "Switch!" at 20 s (20 s + 20 s) |
 | 17 | 18:05 | 18:45 | 40 s | 5 s | Quadruped | Cat-cow | — |
-| 18 | 18:50 | 19:30 | 40 s | 5 s (position change) | Standing | World's greatest stretch | "Switch!" at 20 s (20 s + 20 s) |
+| 18 | 18:50 | 19:30 | 40 s | 5 s | Quadruped | World's greatest stretch | "Switch!" at 20 s (20 s + 20 s) |
 | 19 | 19:35 | 20:35 | 60 s | 5 s (position change) | Kneeling | Pigeon LEFT | — |
 | 20 | 20:40 | 21:40 | 60 s | 5 s | Kneeling | Pigeon RIGHT | — |
 | 21 | 21:50 | 22:50 | 60 s | 10 s (custom) | Kneeling | Couch stretch LEFT | — |
 | 22 | 22:55 | 23:55 | 60 s | 5 s | Kneeling | Couch stretch RIGHT | — |
-| 23 | 24:00 | 25:00 | 60 s | 5 s (position change) | Standing | Foam stance, eyes open LEFT | — |
-| 24 | 25:05 | 26:05 | 60 s | 5 s | Standing | Foam stance, eyes open RIGHT | — |
-| 25 | 26:10 | 27:10 | 60 s | 5 s | Standing | Stance eyes closed LEFT | — |
-| 26 | 27:15 | 28:15 | 60 s | 5 s | Standing | Stance eyes closed RIGHT | — |
+| 23 | 24:10 | 25:10 | 60 s | 15 s (custom, position change) | Standing | Foam stance, eyes open LEFT | — |
+| 24 | 25:15 | 26:15 | 60 s | 5 s | Standing | Foam stance, eyes open RIGHT | — |
+| 25 | 26:20 | 27:20 | 60 s | 5 s | Standing | Stance eyes closed LEFT | — |
+| 26 | 27:25 | 28:25 | 60 s | 5 s | Standing | Stance eyes closed RIGHT | — |
 
 ## Raw configuration (as entered in the app)
 
-Format: `length | position | exercise | options`. Options: `relax 10, extend 30` = repeating timed parts; `switch` = "Switch!" halfway; `rest before N` = custom rest before this exercise.
+Format: `length | position | exercise | options`. Options: `contract 6, relax 4, extend 30` = repeating timed parts; `switch` = "Switch!" halfway; `rest before N` = custom rest before this exercise.
 
 ```
 1 | Supine | Knee extension, roller under BOTH knees
 1 | Supine | Knee flexion gapping, towel, BOTH knees
-2 | Supine | Hamstring PNF — BILATERAL 3 cycles | relax 10, extend 30
+2 | Supine | Hamstring PNF — BILATERAL 3 cycles | contract 6, relax 4, extend 30
 1 | Supine | Hollow body hold
 1 | Seated | End-range knee ext., roller under BOTH heels
 1 | Seated | 90-90 hip switches - 2x10 / side
@@ -82,15 +82,15 @@ Format: `length | position | exercise | options`. Options: `relax 10, extend 30`
 1 | Side-lying | Side plank RIGHT
 1 | Prone | SLR prone LEFT
 1 | Prone | SLR prone RIGHT
-1 | Prone | Plank, alternating leg lift | switch
+1 | Prone | Plank, alternating leg lift
 40s | Quadruped | Bird dog | switch
 40s | Quadruped | Cat-cow
-40s | Standing | World's greatest stretch | switch
+40s | Quadruped | World's greatest stretch | switch
 1 | Kneeling | Pigeon LEFT
 1 | Kneeling | Pigeon RIGHT
 1 | Kneeling | Couch stretch LEFT | rest before 10
 1 | Kneeling | Couch stretch RIGHT
-1 | Standing | Foam stance, eyes open LEFT
+1 | Standing | Foam stance, eyes open LEFT | rest before 15
 1 | Standing | Foam stance, eyes open RIGHT
 1 | Standing | Stance eyes closed LEFT
 1 | Standing | Stance eyes closed RIGHT
@@ -100,7 +100,20 @@ Format: `length | position | exercise | options`. Options: `relax 10, extend 30`
 
 | Original | In the app | Why |
 |---|---|---|
-| Hamstring PNF, minutes 3–4 (one 2‑min block, "3 cycles") | 3 × (10 s relax + 30 s extend) | Requested cue timing |
+| Hamstring PNF, minutes 3–4 (one 2‑min block, "3 cycles", contract‑relax) | 3 × (6 s contract + 4 s relax + 30 s extend) | Restores the contraction that makes it PNF (video review, Nov 23) |
 | Bird dog, Cat‑cow, World's greatest stretch, 1 min each | 40 s each (2 min total) | Requested |
-| Plank (alt. leg lift), Bird dog, World's greatest stretch | "Switch!" at the halfway point | Change sides |
-| All transitions 5 s | 10 s before Couch stretch LEFT | Needs time to get into position |
+| Bird dog, World's greatest stretch | "Switch!" at the halfway point | Change sides. Removed from the alternating plank (it already changes legs every rep) |
+| World's greatest stretch: Standing | Quadruped | It's done from all fours, with no standing up |
+| All transitions 5 s | 10 s before Couch stretch LEFT; 15 s before Foam stance LEFT | Time to get into position; stand up slowly before balance work |
+
+## Form notes from the video review (Nov 23, 2026)
+
+| Exercise | Seen on video | Do instead |
+|---|---|---|
+| Glute bridge L/R | Hips barely off the mat and sinking over the minute | Reps: drive up until knee–hip–shoulder line up, 2 s hold, lower (~10–12 per minute). Bend the free knee if it stops you reaching that line |
+| Plank, alternating leg lift | Hips piked throughout | Glutes tight, hips level with shoulders. Lower lifts or knees down if form fails |
+| Bird dog | ~1.2–1.5 s per rep, kicking | 5 per side with a 2 s hold at full extension |
+| Hamstring PNF | Head and shoulders curl up during the stretch | Head on the towel, tailbone down. Light push (not maximal) on "Contract", breathe out, no breath‑hold |
+| Stance eyes closed | Frequent touch‑downs, one large catch | Normal at this level. Do it next to a counter |
+| 90‑90 hip switches | ~19 controlled switches a minute | Keep this pace (≈10 per side). The spoken "2 sets of 10" is just the old label |
+| TKEs (outside the timer) | ~1.35 s per rep, no pause, in flip‑flops | 1 s squeeze at full straightening; barefoot or in shoes |
