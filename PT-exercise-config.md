@@ -27,8 +27,7 @@ Exported from the Workout Timer app (repo `ponteran/Workout-Timer`, file `routin
 | Start of each exercise | Beep, then "Work!" |
 | Each rest | "Rest! Next: [exercise]." On a position change: "Rest! Next: [position]. [exercise]." |
 | Hamstring PNF | "Contract!" / "Relax!" / "Extend!" at each part |
-| Halfway on `switch` exercises | "Switch!" |
-| Plank, alternating leg lift, at 0:30 | "Stretch!" |
+| Halfway on `switch` exercises (Plank, Bird dog, World's greatest stretch) | "Switch!" |
 | End | "Workout complete. Great job!" |
 
 ## Schedule
@@ -51,7 +50,7 @@ Times are measured from pressing Start.
 | 12 | 13:09 | 14:09 | 60 s | 5 s | Side-lying | Side plank RIGHT | — |
 | 13 | 14:14 | 15:14 | 60 s | 5 s (position change) | Prone | SLR prone LEFT | — |
 | 14 | 15:19 | 16:19 | 60 s | 5 s | Prone | SLR prone RIGHT | — |
-| 15 | 16:24 | 17:24 | 60 s | 5 s | Prone | Plank, alternating leg lift | "Stretch!" at 30 s (30 s + 30 s) |
+| 15 | 16:24 | 17:24 | 60 s | 5 s | Prone | Plank, alternating leg lift | "Switch!" at 30 s (30 s + 30 s) |
 | 16 | 17:29 | 18:09 | 40 s | 5 s (position change) | Quadruped | Bird dog | "Switch!" at 20 s (20 s + 20 s) |
 | 17 | 18:14 | 18:54 | 40 s | 5 s | Quadruped | Cat-cow | — |
 | 18 | 18:59 | 19:39 | 40 s | 5 s | Quadruped | World's greatest stretch | "Switch!" at 20 s (20 s + 20 s) |
@@ -66,7 +65,7 @@ Times are measured from pressing Start.
 
 ## Raw configuration (as entered in the app)
 
-Format: `length | position | exercise | options`. Options: `contract 6, relax 4, extend 30` = repeating timed parts; `switch` = "Switch!" halfway; `stretch at 30` = "Stretch!" 30 s in; `rest before N` = custom rest before this exercise.
+Format: `length | position | exercise | options`. Options: `contract 6, relax 4, extend 30` = repeating timed parts; `switch` = "Switch!" halfway; `<word> at N` = say that word N s in; `rest before N` = custom rest before this exercise.
 
 ```
 1 | Supine | Knee extension, roller under BOTH knees
@@ -83,7 +82,7 @@ Format: `length | position | exercise | options`. Options: `contract 6, relax 4,
 1 | Side-lying | Side plank RIGHT
 1 | Prone | SLR prone LEFT
 1 | Prone | SLR prone RIGHT
-1 | Prone | Plank, alternating leg lift | stretch at 30
+1 | Prone | Plank, alternating leg lift | switch
 40s | Quadruped | Bird dog | switch
 40s | Quadruped | Cat-cow
 40s | Quadruped | World's greatest stretch | switch
@@ -103,10 +102,10 @@ Format: `length | position | exercise | options`. Options: `contract 6, relax 4,
 |---|---|---|
 | Hamstring PNF, minutes 3–4 (one 2‑min block, "3 cycles", contract‑relax) | 3 × (6 s contract + 4 s relax + 30 s extend) | Restores the contraction that makes it PNF (video review, Nov 23) |
 | Bird dog, Cat‑cow, World's greatest stretch, 1 min each | 40 s each (2 min total) | Requested |
-| Bird dog, World's greatest stretch | "Switch!" at the halfway point | Change sides. Removed from the alternating plank (it already changes legs every rep) |
+| Bird dog, World's greatest stretch | "Switch!" at the halfway point | Change sides |
 | World's greatest stretch: Standing | Quadruped | It's done from all fours, with no standing up |
 | All transitions 5 s | 14 s before Hamstring PNF; 15 s before Couch stretch LEFT; 15 s before Foam stance LEFT | Time to set up the PNF / get into position; stand up slowly before balance work |
-| Plank, alternating leg lift | "Stretch!" at 30 s | Requested (Nov 24) |
+| Plank, alternating leg lift | "Switch!" at 30 s (halfway) | Requested (Nov 24), re-added after the Nov 23 review had removed it |
 
 ## Form notes from the video review (Nov 23, 2026)
 

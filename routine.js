@@ -28,7 +28,7 @@
     '1 | Side-lying | Side plank RIGHT',
     '1 | Prone | SLR prone LEFT',
     '1 | Prone | SLR prone RIGHT',
-    '1 | Prone | Plank, alternating leg lift | stretch at 30',
+    '1 | Prone | Plank, alternating leg lift | switch',
     '40s | Quadruped | Bird dog | switch',
     '40s | Quadruped | Cat-cow',
     "40s | Quadruped | World's greatest stretch | switch",

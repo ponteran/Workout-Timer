@@ -17,7 +17,7 @@
     tick: true,          // subtle clock tick every second
     useRoutine: true,    // follow the exercise list (one exercise per round)
     routineText: (window.Routine && Routine.DEFAULT_TEXT) || '',
-    rv: 6,               // settings revision (for migrations)
+    rv: 7,               // settings revision (for migrations)
     audioMode: 'exclusive', // 'exclusive' = media app (plays in silent mode) | 'mix' = plays over other apps' audio
     volume: 1,
   };
@@ -86,6 +86,11 @@
           '$1, rest before 14')
         .replace(/^(\s*\S+\s*\|\s*Kneeling\s*\|\s*Couch stretch LEFT\s*\|\s*rest before )10\s*$/m, '$115')
         .replace(/^(\s*\S+\s*\|\s*Prone\s*\|\s*Plank, alternating leg lift)\s*$/m, '$1 | stretch at 30');
+    }
+    if ((saved.rv || 1) < 7 && typeof s.routineText === 'string') {
+      // rev 7: the plank says "Switch!" (not "Stretch!") at the halfway point
+      s.routineText = s.routineText
+        .replace(/^(\s*\S+\s*\|\s*Prone\s*\|\s*Plank, alternating leg lift\s*\|\s*)stretch at 30\s*$/m, '$1switch');
     }
     if (s.audioMode !== 'mix') s.audioMode = 'exclusive';
     s.rv = DEFAULTS.rv;
