@@ -12,10 +12,11 @@
   //   "contract 6, relax 4, extend 30"  split into repeating timed parts with own cues
   //   "rest before 10"       rest before this exercise (overrides the default)
   //   "switch"               say "Switch!" halfway (change sides)
+  //   "stretch at 30"        say "Stretch!" 30 s into the exercise
   const DEFAULT_TEXT = [
     '1 | Supine | Knee extension, roller under BOTH knees',
     '1 | Supine | Knee flexion gapping, towel, BOTH knees',
-    '2 | Supine | Hamstring PNF — BILATERAL 3 cycles | contract 6, relax 4, extend 30',
+    '2 | Supine | Hamstring PNF — BILATERAL 3 cycles | contract 6, relax 4, extend 30, rest before 14',
     '1 | Supine | Hollow body hold',
     '1 | Seated | End-range knee ext., roller under BOTH heels',
     '1 | Seated | 90-90 hip switches - 2x10 / side',
@@ -27,13 +28,13 @@
     '1 | Side-lying | Side plank RIGHT',
     '1 | Prone | SLR prone LEFT',
     '1 | Prone | SLR prone RIGHT',
-    '1 | Prone | Plank, alternating leg lift',
+    '1 | Prone | Plank, alternating leg lift | stretch at 30',
     '40s | Quadruped | Bird dog | switch',
     '40s | Quadruped | Cat-cow',
     "40s | Quadruped | World's greatest stretch | switch",
     '1 | Kneeling | Pigeon LEFT',
     '1 | Kneeling | Pigeon RIGHT',
-    '1 | Kneeling | Couch stretch LEFT | rest before 10',
+    '1 | Kneeling | Couch stretch LEFT | rest before 15',
     '1 | Kneeling | Couch stretch RIGHT',
     '1 | Standing | Foam stance, eyes open LEFT | rest before 15',
     '1 | Standing | Foam stance, eyes open RIGHT',
@@ -58,19 +59,23 @@
       }
       let steps = [];
       let restBefore = null;
-      let sides = false;
+      let split = null; // one cue inside the exercise: {label, at} (at = null -> halfway)
       if (parts.length > 2) {
         let opts = parts[parts.length - 1];
         const rb = opts.match(/\brest\s+before\s*[:=]?\s*(\d+)\s*(?:s|sec|secs|seconds)?\b/i);
         if (rb) { restBefore = Math.min(3600, Number(rb[1])); opts = opts.replace(rb[0], ''); }
+        const at = /(^|,)\s*([a-z][a-z '’-]*?)\s+at\s+(\d+)\s*(?:s|sec|secs|seconds)?\s*(?=,|$)/i;
+        const am = opts.match(at);
+        if (am) { split = { label: am[2].trim().toLowerCase(), at: Number(am[3]) }; opts = opts.replace(at, '$1'); }
         const sw = /(^|,)\s*switch(\s+sides?)?\s*(?=,|$)/i;
-        if (sw.test(opts)) { sides = true; opts = opts.replace(sw, '$1'); }
+        if (sw.test(opts)) { split = split || { label: 'switch', at: null }; opts = opts.replace(sw, '$1'); }
         steps = parseSteps(opts);
-        if (rb || sides || steps.length) parts = parts.slice(0, -1);
+        if (rb || split || steps.length) parts = parts.slice(0, -1);
       }
       const name = parts.length > 1 ? parts.slice(1).join(' ') : parts[0];
       const position = parts.length > 1 ? parts[0] : '';
-      if (name) items.push({ min, sec, position, name, steps, restBefore, sides: sides && !steps.length });
+      if (steps.length) split = null;
+      if (name) items.push({ min, sec, position, name, steps, restBefore, split });
     });
     return items;
   }

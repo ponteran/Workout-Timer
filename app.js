@@ -17,7 +17,7 @@
     tick: true,          // subtle clock tick every second
     useRoutine: true,    // follow the exercise list (one exercise per round)
     routineText: (window.Routine && Routine.DEFAULT_TEXT) || '',
-    rv: 5,               // settings revision (for migrations)
+    rv: 6,               // settings revision (for migrations)
     audioMode: 'exclusive', // 'exclusive' = media app (plays in silent mode) | 'mix' = plays over other apps' audio
     volume: 1,
   };
@@ -78,6 +78,15 @@
         .replace(/^(\s*\S+\s*\|\s*)Standing(\s*\|\s*World's greatest stretch\b)/m, '$1Quadruped$2')
         .replace(/^(\s*\S+\s*\|\s*Standing\s*\|\s*Foam stance, eyes open LEFT)\s*$/m, '$1 | rest before 15');
     }
+    if ((saved.rv || 1) < 6 && typeof s.routineText === 'string') {
+      // rev 6: 14 s to set up for the hamstring PNF, 15 s before couch stretch
+      // LEFT, "Stretch!" at 30 s in the alternating-leg plank.
+      s.routineText = s.routineText
+        .replace(/^(\s*2\s*\|\s*Supine\s*\|\s*Hamstring PNF — BILATERAL 3 cycles\s*\|\s*contract 6, relax 4, extend 30)\s*$/m,
+          '$1, rest before 14')
+        .replace(/^(\s*\S+\s*\|\s*Kneeling\s*\|\s*Couch stretch LEFT\s*\|\s*rest before )10\s*$/m, '$115')
+        .replace(/^(\s*\S+\s*\|\s*Prone\s*\|\s*Plank, alternating leg lift)\s*$/m, '$1 | stretch at 30');
+    }
     if (s.audioMode !== 'mix') s.audioMode = 'exclusive';
     s.rv = DEFAULTS.rv;
     return s;
@@ -132,11 +141,12 @@
           add('work', d, r, ex, { sub: { label: st.label, step: i, cycle, cycles }, last: left <= 0 });
           if (++i >= ex.steps.length) { i = 0; cycle++; }
         }
-      } else if (ex && ex.sides && workSec >= 2) {
-        // "switch": two halves, "Switch!" at the midpoint
-        const half = Math.floor(workSec / 2);
-        add('work', half, r, ex, { sub: { label: 'work', side: 1 }, last: false });
-        add('work', workSec - half, r, ex, { sub: { label: 'switch', side: 2 } });
+      } else if (ex && ex.split && workSec >= 2) {
+        // One cue inside the exercise: "switch" (halfway) or e.g. "stretch at 30"
+        const sp = ex.split;
+        const first = sp.at == null ? Math.floor(workSec / 2) : Math.min(Math.max(1, sp.at), workSec - 1);
+        add('work', first, r, ex, { sub: { label: 'work', side: 1, cue: sp.label }, last: false });
+        add('work', workSec - first, r, ex, { sub: { label: sp.label, side: 2, cue: sp.label } });
       } else {
         add('work', workSec, r, ex);
       }
@@ -286,9 +296,9 @@
     }
     const seg = segs[idx];
     if (seg.type === 'work' && seg.sub && seg.sub.side === 2) {
-      // Halfway through a two-sided exercise
+      // Cue inside the exercise: "Switch!" halfway, "Stretch!" at 30 s, …
       if (beepFirst) beep(1320, 0.14);
-      say(cueClip('switch'), 'Switch!', gap);
+      say(cueClip(seg.sub.cue), `${seg.sub.cue}!`, gap);
     } else if (seg.type === 'work' && seg.sub && !seg.sub.side) {
       // Interval inside an exercise, e.g. "Relax." / "Extend!"
       if (beepFirst) beep(seg.sub.step % 2 ? 1320 : 990, 0.14);
@@ -404,7 +414,7 @@
     items.forEach((ex) => {
       if (ex.position) extra.add(posPart(ex)[0]);
       (ex.steps || []).forEach((st) => extra.add(cueClip(st.label)));
-      if (ex.sides) extra.add(cueClip('switch'));
+      if (ex.split) extra.add(cueClip(ex.split.label));
     });
     const more = Promise.all([...extra].map((n) => loadClip(set, n)));
     return Promise.all([base, names, more]);
@@ -788,7 +798,7 @@
   const last = {};
   const segLabel = (seg, header) => {
     if (!seg) return LABEL.done;
-    if (seg.sub && seg.sub.side) return header ? LABEL.work : seg.sub.side === 2 ? 'SWITCH' : LABEL.work;
+    if (seg.sub && seg.sub.side) return header ? LABEL.work : seg.sub.side === 2 ? seg.sub.cue.toUpperCase() : LABEL.work;
     return seg.sub ? seg.sub.label.toUpperCase() : LABEL[seg.type];
   };
 
@@ -821,7 +831,7 @@
     if (routine.length) {
       const ex = seg && seg.ex;
       let tag = '';
-      if (seg && type === 'work') tag = !seg.sub ? '' : seg.sub.side ? `SIDE ${seg.sub.side}/2` : `CYCLE ${seg.sub.cycle}/${seg.sub.cycles}`;
+      if (seg && type === 'work') tag = !seg.sub ? '' : seg.sub.side ? (seg.sub.cue === 'switch' ? `SIDE ${seg.sub.side}/2` : '') : `CYCLE ${seg.sub.cycle}/${seg.sub.cycles}`;
       else if (seg) tag = type === 'prep' ? 'FIRST UP' : seg.change ? 'NEW POSITION' : 'UP NEXT';
       set('exTag', el.exTag, 'textContent', tag);
       set('exPos', el.exPos, 'textContent', ex ? ex.position.toUpperCase() : '');
