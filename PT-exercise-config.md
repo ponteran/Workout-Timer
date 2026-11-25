@@ -8,9 +8,9 @@ Exported from the Workout Timer app (repo `ponteran/Workout-Timer`, file `routin
 |---|---|
 | Exercises | 26 |
 | Total work time | 26:20 |
-| Total rest/transition time | 02:34 (25 rests) |
+| Total rest/transition time | 02:35 (25 rests) |
 | Get-ready before exercise 1 | 5 s |
-| **Total session length** | **28:59** |
+| **Total session length** | **29:00** |
 
 ## Timing rules (app settings)
 
@@ -38,30 +38,30 @@ Times are measured from pressing Start.
 |---|---|---|---|---|---|---|---|
 | 1 | 00:05 | 01:05 | 60 s | 5 s (get ready) | Supine | Knee extension, roller under knees | — |
 | 2 | 01:10 | 02:10 | 60 s | 5 s | Supine | Knee flexion gapping, towel under knees | — |
-| 3 | 02:24 | 04:24 | 120 s | 14 s (custom) | Supine | Hamstring PNF — BILATERAL 3 cycles | 3 × (contract 6 s + relax 4 s + extend 30 s); cue at each part |
-| 4 | 04:29 | 05:29 | 60 s | 5 s | Supine | Hollow body hold | — |
-| 5 | 05:34 | 06:34 | 60 s | 5 s (position change) | Seated | End-range knee ext., roller under BOTH heels | — |
-| 6 | 06:39 | 07:39 | 60 s | 5 s | Seated | 90-90 hip switches | — |
-| 7 | 07:44 | 08:44 | 60 s | 5 s (position change) | Supine | Glute bridge LEFT | — |
-| 8 | 08:49 | 09:49 | 60 s | 5 s | Supine | Glute bridge RIGHT | — |
-| 9 | 09:54 | 10:54 | 60 s | 5 s (position change) | Side-lying | SLR lateral LEFT | — |
-| 10 | 10:59 | 11:59 | 60 s | 5 s | Side-lying | Side plank RIGHT | — |
-| 11 | 12:04 | 13:04 | 60 s | 5 s | Side-lying | SLR lateral RIGHT | — |
-| 12 | 13:09 | 14:09 | 60 s | 5 s | Side-lying | Side plank LEFT | — |
-| 13 | 14:14 | 15:14 | 60 s | 5 s (position change) | Prone | SLR prone LEFT | — |
-| 14 | 15:19 | 16:19 | 60 s | 5 s | Prone | SLR prone RIGHT | — |
-| 15 | 16:24 | 17:24 | 60 s | 5 s | Prone | Plank, alternating leg lift | "Switch!" at 30 s (30 s + 30 s) |
-| 16 | 17:29 | 18:29 | 60 s | 5 s (position change) | Quadruped | Bird dog | "Switch!" at 30 s (30 s + 30 s) |
-| 17 | 18:34 | 19:14 | 40 s | 5 s | Quadruped | Cat-cow | — |
-| 18 | 19:19 | 19:59 | 40 s | 5 s | Quadruped | World's greatest stretch | "Switch!" at 20 s (20 s + 20 s) |
-| 19 | 20:04 | 21:04 | 60 s | 5 s (position change) | Kneeling | Pigeon RIGHT | — |
-| 20 | 21:09 | 22:09 | 60 s | 5 s | Kneeling | Pigeon LEFT | — |
-| 21 | 22:24 | 23:24 | 60 s | 15 s (custom) | Kneeling | Couch stretch RIGHT | — |
-| 22 | 23:29 | 24:29 | 60 s | 5 s | Kneeling | Couch stretch LEFT | — |
-| 23 | 24:44 | 25:44 | 60 s | 15 s (custom, position change) | Standing | Foam stance, eyes open RIGHT | — |
-| 24 | 25:49 | 26:49 | 60 s | 5 s | Standing | Foam stance, eyes open LEFT | — |
-| 25 | 26:54 | 27:54 | 60 s | 5 s | Standing | Stance eyes closed RIGHT | — |
-| 26 | 27:59 | 28:59 | 60 s | 5 s | Standing | Stance eyes closed LEFT | — |
+| 3 | 02:25 | 04:25 | 120 s | 15 s (custom) | Supine | Hamstring PNF — BILATERAL 3 cycles | 3 × (contract 6 s + relax 4 s + extend 30 s); cue at each part |
+| 4 | 04:30 | 05:30 | 60 s | 5 s | Supine | Hollow body hold | — |
+| 5 | 05:35 | 06:35 | 60 s | 5 s (position change) | Seated | End-range knee ext., roller under BOTH heels | — |
+| 6 | 06:40 | 07:40 | 60 s | 5 s | Seated | 90-90 hip switches | — |
+| 7 | 07:45 | 08:45 | 60 s | 5 s (position change) | Supine | Glute bridge LEFT | — |
+| 8 | 08:50 | 09:50 | 60 s | 5 s | Supine | Glute bridge RIGHT | — |
+| 9 | 09:55 | 10:55 | 60 s | 5 s (position change) | Side-lying | SLR lateral LEFT | — |
+| 10 | 11:00 | 12:00 | 60 s | 5 s | Side-lying | Side plank RIGHT | — |
+| 11 | 12:05 | 13:05 | 60 s | 5 s | Side-lying | SLR lateral RIGHT | — |
+| 12 | 13:10 | 14:10 | 60 s | 5 s | Side-lying | Side plank LEFT | — |
+| 13 | 14:15 | 15:15 | 60 s | 5 s (position change) | Prone | SLR prone LEFT | — |
+| 14 | 15:20 | 16:20 | 60 s | 5 s | Prone | SLR prone RIGHT | — |
+| 15 | 16:25 | 17:25 | 60 s | 5 s | Prone | Plank, alternating leg lift | "Switch!" at 30 s (30 s + 30 s) |
+| 16 | 17:30 | 18:30 | 60 s | 5 s (position change) | Quadruped | Bird dog | "Switch!" at 30 s (30 s + 30 s) |
+| 17 | 18:35 | 19:15 | 40 s | 5 s | Quadruped | Cat-cow | — |
+| 18 | 19:20 | 20:00 | 40 s | 5 s | Quadruped | World's greatest stretch | "Switch!" at 20 s (20 s + 20 s) |
+| 19 | 20:05 | 21:05 | 60 s | 5 s (position change) | Kneeling | Pigeon RIGHT | — |
+| 20 | 21:10 | 22:10 | 60 s | 5 s | Kneeling | Pigeon LEFT | — |
+| 21 | 22:25 | 23:25 | 60 s | 15 s (custom) | Kneeling | Couch stretch RIGHT | — |
+| 22 | 23:30 | 24:30 | 60 s | 5 s | Kneeling | Couch stretch LEFT | — |
+| 23 | 24:45 | 25:45 | 60 s | 15 s (custom, position change) | Standing | Foam stance, eyes open RIGHT | — |
+| 24 | 25:50 | 26:50 | 60 s | 5 s | Standing | Foam stance, eyes open LEFT | — |
+| 25 | 26:55 | 27:55 | 60 s | 5 s | Standing | Stance eyes closed RIGHT | — |
+| 26 | 28:00 | 29:00 | 60 s | 5 s | Standing | Stance eyes closed LEFT | — |
 
 ## Raw configuration (as entered in the app)
 
@@ -70,7 +70,7 @@ Format: `length | position | exercise | options`. Options: `contract 6, relax 4,
 ```
 1 | Supine | Knee extension, roller under knees
 1 | Supine | Knee flexion gapping, towel under knees
-2 | Supine | Hamstring PNF — BILATERAL 3 cycles | contract 6, relax 4, extend 30, rest before 14
+2 | Supine | Hamstring PNF — BILATERAL 3 cycles | contract 6, relax 4, extend 30, rest before 15
 1 | Supine | Hollow body hold
 1 | Seated | End-range knee ext., roller under BOTH heels
 1 | Seated | 90-90 hip switches
@@ -104,7 +104,7 @@ Format: `length | position | exercise | options`. Options: `contract 6, relax 4,
 | Bird dog, Cat‑cow, World's greatest stretch, 1 min each | Bird dog 1 min; Cat‑cow and World's greatest stretch 40 s each | 40 s each requested Nov 20; Bird dog back to 1 min (Nov 25 edit) |
 | Bird dog, World's greatest stretch | "Switch!" at the halfway point | Change sides |
 | World's greatest stretch: Standing | Quadruped | It's done from all fours, with no standing up |
-| All transitions 5 s | 14 s before Hamstring PNF; 15 s before Couch stretch RIGHT; 15 s before Foam stance RIGHT | Time to set up the PNF / get into position; stand up slowly before balance work |
+| All transitions 5 s | 15 s before Hamstring PNF; 15 s before Couch stretch RIGHT; 15 s before Foam stance RIGHT | Time to set up the PNF / get into position; stand up slowly before balance work |
 | Plank, alternating leg lift | "Switch!" at 30 s (halfway) | Requested (Nov 24), re-added after the Nov 23 review had removed it |
 | Knee extension / knee flexion gapping, 90‑90 hip switches | Renamed ("roller under knees", "towel under knees", "90‑90 hip switches") | Nov 25 edit |
 | Left/right order of side plank, pigeon, couch stretch, foam stance, eyes‑closed stance | Swapped as listed above | Nov 25 edit |

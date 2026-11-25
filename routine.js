@@ -16,7 +16,7 @@
   const DEFAULT_TEXT = [
     '1 | Supine | Knee extension, roller under knees',
     '1 | Supine | Knee flexion gapping, towel under knees',
-    '2 | Supine | Hamstring PNF — BILATERAL 3 cycles | contract 6, relax 4, extend 30, rest before 14',
+    '2 | Supine | Hamstring PNF — BILATERAL 3 cycles | contract 6, relax 4, extend 30, rest before 15',
     '1 | Supine | Hollow body hold',
     '1 | Seated | End-range knee ext., roller under BOTH heels',
     '1 | Seated | 90-90 hip switches',
