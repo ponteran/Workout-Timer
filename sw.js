@@ -1,6 +1,6 @@
 // Offline support: network first (so updates arrive immediately), cache as
 // fallback when offline.
-const CACHE = 'workout-timer-v11';
+const CACHE = 'workout-timer-v12';
 const ASSETS = [
   './',
   './index.html',

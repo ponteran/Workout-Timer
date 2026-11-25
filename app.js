@@ -17,7 +17,7 @@
     tick: true,          // subtle clock tick every second
     useRoutine: true,    // follow the exercise list (one exercise per round)
     routineText: (window.Routine && Routine.DEFAULT_TEXT) || '',
-    rv: 7,               // settings revision (for migrations)
+    rv: 8,               // settings revision (for migrations)
     audioMode: 'exclusive', // 'exclusive' = media app (plays in silent mode) | 'mix' = plays over other apps' audio
     volume: 1,
   };
@@ -36,6 +36,13 @@
     const n = Math.round(Number(v));
     return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : fallback;
   };
+
+  // Small string hash (djb2) used to recognise an unedited default list.
+  function textHash(t) {
+    let h = 5381;
+    for (const c of t) h = ((h * 33) ^ c.charCodeAt(0)) >>> 0;
+    return h;
+  }
 
   function loadSettings() {
     let saved = {};
@@ -91,6 +98,14 @@
       // rev 7: the plank says "Switch!" (not "Stretch!") at the halfway point
       s.routineText = s.routineText
         .replace(/^(\s*\S+\s*\|\s*Prone\s*\|\s*Plank, alternating leg lift\s*\|\s*)stretch at 30\s*$/m, '$1switch');
+    }
+    if ((saved.rv || 1) < 8 && typeof s.routineText === 'string' && window.Routine &&
+        textHash(s.routineText.trim()) === 1035729786) {
+      // rev 8: the list was edited in routine.js (renamed knee exercises and
+      // 90-90 hip switches, new left/right order, bird dog 1 min). A saved
+      // list that is exactly the previous default is replaced; edited lists
+      // are left alone.
+      s.routineText = Routine.DEFAULT_TEXT;
     }
     if (s.audioMode !== 'mix') s.audioMode = 'exclusive';
     s.rv = DEFAULTS.rv;
