@@ -17,7 +17,7 @@
     tick: true,          // subtle clock tick every second
     useRoutine: true,    // follow the exercise list (one exercise per round)
     routineText: (window.Routine && Routine.DEFAULT_TEXT) || '',
-    rv: 8,               // settings revision (for migrations)
+    rv: 9,               // settings revision (for migrations)
     audioMode: 'exclusive', // 'exclusive' = media app (plays in silent mode) | 'mix' = plays over other apps' audio
     volume: 1,
   };
@@ -106,6 +106,13 @@
       // list that is exactly the previous default is replaced; edited lists
       // are left alone.
       s.routineText = Routine.DEFAULT_TEXT;
+    }
+    if ((saved.rv || 1) < 9 && typeof s.routineText === 'string') {
+      // rev 9: 15 s (was 14) to set up for the hamstring PNF -> a 29:00 session;
+      // the plank alternates legs every rep, so it has no "Switch!".
+      s.routineText = s.routineText
+        .replace(/^(\s*2\s*\|\s*Supine\s*\|\s*Hamstring PNF — BILATERAL 3 cycles\s*\|.*\brest before )14\s*$/m, '$115')
+        .replace(/^(\s*\S+\s*\|\s*Prone\s*\|\s*Plank, alternating leg lift)\s*\|\s*switch\s*$/m, '$1');
     }
     if (s.audioMode !== 'mix') s.audioMode = 'exclusive';
     s.rv = DEFAULTS.rv;
