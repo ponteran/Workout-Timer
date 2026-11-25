@@ -27,7 +27,7 @@ Exported from the Workout Timer app (repo `ponteran/Workout-Timer`, file `routin
 | Start of each exercise | Beep, then "Work!" |
 | Each rest | "Rest! Next: [exercise]." On a position change: "Rest! Next: [position]. [exercise]." |
 | Hamstring PNF | "Contract!" / "Relax!" / "Extend!" at each part |
-| Halfway on `switch` exercises (Plank, Bird dog, World's greatest stretch) | "Switch!" |
+| Halfway on `switch` exercises (Bird dog, World's greatest stretch) | "Switch!" |
 | End | "Workout complete. Great job!" |
 
 ## Schedule
@@ -50,7 +50,7 @@ Times are measured from pressing Start.
 | 12 | 13:10 | 14:10 | 60 s | 5 s | Side-lying | Side plank LEFT | — |
 | 13 | 14:15 | 15:15 | 60 s | 5 s (position change) | Prone | SLR prone LEFT | — |
 | 14 | 15:20 | 16:20 | 60 s | 5 s | Prone | SLR prone RIGHT | — |
-| 15 | 16:25 | 17:25 | 60 s | 5 s | Prone | Plank, alternating leg lift | "Switch!" at 30 s (30 s + 30 s) |
+| 15 | 16:25 | 17:25 | 60 s | 5 s | Prone | Plank, alternating leg lift | — |
 | 16 | 17:30 | 18:30 | 60 s | 5 s (position change) | Quadruped | Bird dog | "Switch!" at 30 s (30 s + 30 s) |
 | 17 | 18:35 | 19:15 | 40 s | 5 s | Quadruped | Cat-cow | — |
 | 18 | 19:20 | 20:00 | 40 s | 5 s | Quadruped | World's greatest stretch | "Switch!" at 20 s (20 s + 20 s) |
@@ -82,7 +82,7 @@ Format: `length | position | exercise | options`. Options: `contract 6, relax 4,
 1 | Side-lying | Side plank LEFT
 1 | Prone | SLR prone LEFT
 1 | Prone | SLR prone RIGHT
-1 | Prone | Plank, alternating leg lift | switch
+1 | Prone | Plank, alternating leg lift
 1 | Quadruped | Bird dog | switch
 40s | Quadruped | Cat-cow
 40s | Quadruped | World's greatest stretch | switch
@@ -105,7 +105,7 @@ Format: `length | position | exercise | options`. Options: `contract 6, relax 4,
 | Bird dog, World's greatest stretch | "Switch!" at the halfway point | Change sides |
 | World's greatest stretch: Standing | Quadruped | It's done from all fours, with no standing up |
 | All transitions 5 s | 15 s before Hamstring PNF; 15 s before Couch stretch RIGHT; 15 s before Foam stance RIGHT | Time to set up the PNF / get into position; stand up slowly before balance work |
-| Plank, alternating leg lift | "Switch!" at 30 s (halfway) | Requested (Nov 24), re-added after the Nov 23 review had removed it |
+| Plank, alternating leg lift | No "Switch!" | Re-added Nov 24, removed again Nov 25: legs alternate every rep (~2 s per lift), so there is no halfway change. 30 s per leg is the progression once hips stay level for the full minute |
 | Knee extension / knee flexion gapping, 90‑90 hip switches | Renamed ("roller under knees", "towel under knees", "90‑90 hip switches") | Nov 25 edit |
 | Left/right order of side plank, pigeon, couch stretch, foam stance, eyes‑closed stance | Swapped as listed above | Nov 25 edit |
 
@@ -114,7 +114,7 @@ Format: `length | position | exercise | options`. Options: `contract 6, relax 4,
 | Exercise | Seen on video | Do instead |
 |---|---|---|
 | Glute bridge L/R | Hips barely off the mat and sinking over the minute | Reps: drive up until knee–hip–shoulder line up, 2 s hold, lower (~10–12 per minute). Bend the free knee if it stops you reaching that line |
-| Plank, alternating leg lift | Hips piked throughout | Glutes tight, hips level with shoulders. Lower lifts or knees down if form fails |
+| Plank, alternating leg lift | Hips piked throughout | Glutes tight, hips level with shoulders. Alternate legs, ~2 s per lift. Lower lifts or knees down if form fails |
 | Bird dog | ~1.2–1.5 s per rep, kicking | 5 per side with a 2 s hold at full extension |
 | Hamstring PNF | Head and shoulders curl up during the stretch | Head on the towel, tailbone down. Light push (not maximal) on "Contract", breathe out, no breath‑hold |
 | Stance eyes closed | Frequent touch‑downs, one large catch | Normal at this level. Do it next to a counter |
